@@ -1,0 +1,170 @@
+/* Carousel Section with gradient background and centered heading */
+.carouselSection {
+  width: 100vw;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2.5rem 0 3.5rem 0;
+  background: radial-gradient(ellipse 90% 65% at 50% 60%, #f9f1fb 80%, rgba(240,160,255,0.25), #ffc3a0 99%, #fff 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+}
+
+.carouselHeading {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+.carouselHeading h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #22223b;
+}
+
+.carousel {
+  display: flex;
+  gap: 2rem;
+  scroll-behavior: smooth;
+  padding: 2rem 0 1rem 0;
+  outline: none;
+  justify-content: center;
+}
+
+/* Card with shadow, border, rounded corners, and hover effect */
+.card {
+  position: relative;
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 6px 32px 0 rgba(169,139,236,0.10), 0 1.5px 5px 0 rgba(36,22,48,0.05);
+  border: 2px solid #f7fafc;
+  width: 240px;
+  flex: 0 0 240px;
+  height: 340px;
+  transition: box-shadow 0.2s, border-color 0.2s;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+  cursor: pointer;
+  outline: none;
+}
+.card:focus, .card:hover {
+  border-color: #eb6754;
+  box-shadow: 0 8px 32px 0 rgba(235,103,84,0.13);
+}
+
+/* Preview area with subtle shadow and rounded corners */
+.previewWrapper {
+  width: 220px;
+  aspect-ratio: 210/297;
+  margin: 0 auto 1.1rem auto;
+  background: #fafbff;
+  border-radius: 0.7rem;
+  box-shadow: 0 1px 8px 0 rgba(0,0,0,0.033);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* PDF preview remains unchanged, but add .card-img for image fallback */
+.scaledA4Preview {
+  width: 794px;
+  height: 1123px;
+  background: #fff;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.08);
+  overflow: hidden;
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  transform-origin: top left;
+  /* scale to fit card width */
+  transform: scale(0.277);
+}
+.card-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+/* CTA overlay on card hover */
+.cta-link {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  width: 100%;
+  opacity: 0;
+  transition: opacity 0.2s;
+  text-align: center;
+  padding-bottom: 0.75rem;
+  z-index: 2;
+}
+.card:hover .cta-link,
+.card:focus-within .cta-link {
+  opacity: 1;
+}
+.primary-btn {
+  display: inline-block;
+  background: #eb6754;
+  color: #fff;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 1rem;
+  padding: 0.55rem 1.5rem;
+  box-shadow: 0 2px 10px rgba(235,103,84,0.08);
+  transition: background 0.15s;
+}
+.primary-btn:hover {
+  background: #c95946;
+}
+
+/* Navigation dots */
+.slider-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.7rem;
+  margin: 0 0 16px 0;
+}
+.slider-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: block;
+  background: #ebe9f2;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 0.5px 3px #ddd;
+  cursor: pointer;
+}
+.slider-dot.active {
+  background: #eb6754;
+  box-shadow: 0 1.5px 7px #eebba7;
+}
+
+/* See All Templates CTA */
+.carousel-cta {
+  margin-top: 14px;
+  text-align: center;
+}
+.secondary-btn span {
+  background: none;
+  background-image: linear-gradient(90deg,#eb6754 0,#f0a0ff 100%);
+  color: #fff;
+  border-radius: 2em;
+  padding: 0.65em 2em;
+  font-weight: 600;
+  font-size: 1.1rem;
+  text-decoration: none;
+}
+
+@media (max-width: 800px) {
+  .carousel { gap: 1rem; }
+  .card, .previewWrapper { min-width: 80vw; max-width: 90vw; }
+  .previewWrapper { aspect-ratio: 210/297; }
+}
