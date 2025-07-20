@@ -96,6 +96,7 @@ export const resumeSchema = z.object({
     "experience",
     "skills",
     "education",
+    "certifications",
     "projects"
   ])).optional(),
 });

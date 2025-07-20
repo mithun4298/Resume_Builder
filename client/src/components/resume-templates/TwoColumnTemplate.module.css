@@ -1,0 +1,133 @@
+.twoColResume {
+  background: #fff;
+  color: #232323;
+  font-family: 'Inter', Arial, sans-serif;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2.5rem 2.5rem;
+  border-radius: 14px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.09);
+  border: 1px solid #e5e7eb;
+}
+.header {
+  text-align: left;
+  margin-bottom: 2.2rem;
+}
+.header h1 {
+  font-size: 2.2rem;
+  font-weight: 800;
+  margin-bottom: 0.1em;
+}
+.header h2 {
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: #0891b2;
+  margin-bottom: 0.5em;
+}
+.body {
+  display: flex;
+  gap: 2.5rem;
+}
+.sidebar {
+  flex: 0 0 260px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  min-width: 180px;
+}
+.contactSection h3,
+.skillsSection h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0891b2;
+  margin-bottom: 0.5em;
+}
+.skillsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em;
+}
+.skillBadge {
+  background: #cffafe;
+  color: #0891b2;
+  border-radius: 6px;
+  padding: 0.18em 0.6em;
+  font-size: 0.97em;
+  margin-bottom: 0.2em;
+}
+.main {
+  flex: 1 1 0%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.section {
+  margin-bottom: 0.7rem;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.section h3 {
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: #0891b2;
+  margin-bottom: 0.25em;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.1em;
+}
+.expItem, .eduItem {
+  margin-bottom: 1em;
+}
+.expHeader {
+  font-weight: 600;
+}
+.expMeta {
+  font-size: 0.95em;
+  color: #666;
+  margin-bottom: 0.2em;
+}
+.expBullets {
+  margin: 0.2em 0 0.7em 1.2em;
+  padding: 0;
+  list-style: disc;
+}
+.certList {
+  margin: 0.5em 0 0 1.2em;
+  padding: 0;
+  list-style: circle;
+}
+.eduGpa {
+  margin-left: 1em;
+  color: #0891b2;
+  font-size: 0.95em;
+}
+@media (max-width: 900px) {
+  .body {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .sidebar {
+    flex: 1 1 100%;
+    min-width: 0;
+    padding: 1rem 0.5rem;
+  }
+}
+@media (max-width: 700px) {
+  .twoColResume {
+    padding: 1rem 0.5rem;
+  }
+}
+@media print {
+  .twoColResume {
+    box-shadow: none;
+    border-radius: 0;
+    margin: 0;
+    padding: 0.5in 0.5in;
+    background: #fff !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

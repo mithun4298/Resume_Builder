@@ -46,18 +46,44 @@ interface ResumeSettings {
   atsOptimized: boolean;
 }
 
+
 const SECTION_KEYS = [
   "personal",
   "summary",
   "experience",
   "skills",
   "education",
+  "certifications",
   "projects"
 ] as const;
+
 
 type SectionKey = typeof SECTION_KEYS[number];
 
 function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, exportPdfPending }: ResumeEditorProps) {
+  // --- CERTIFICATIONS HANDLERS ---
+  function addCertification() {
+    onChange({
+      ...data,
+      certifications: [
+        ...data.certifications,
+        { name: "", issuer: "", date: "", url: "" }
+      ]
+    });
+  }
+
+  function removeCertification(index: number) {
+    const newCerts = [...data.certifications];
+    newCerts.splice(index, 1);
+    onChange({ ...data, certifications: newCerts });
+  }
+
+  function updateCertification(index: number, field: string, value: string) {
+    const newCerts = [...data.certifications];
+    newCerts[index] = { ...newCerts[index], [field]: value };
+    onChange({ ...data, certifications: newCerts });
+  }
+// ...existing code...
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<"content" | "design" | "settings">("content");
   const [collapsedSections, setCollapsedSections] = useState<Set<SectionKey>>(new Set());
@@ -117,7 +143,7 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
       ...data,
       experience: [
         ...data.experience,
-        { company: "", position: "", location: "", startDate: "", endDate: "", current: false, bullets: [""] }
+        { title: "", company: "", location: "", startDate: "", endDate: "", current: false, bullets: [""] }
       ]
     });
   }
@@ -414,10 +440,10 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
                         />
                       </div>
                       <div>
-                        <Label>Position</Label>
+                        <Label>Title</Label>
                         <Input
-                          value={exp.position}
-                          onChange={(e) => updateExperience(expIndex, "position", e.target.value)}
+                          value={exp.title}
+                          onChange={(e) => updateExperience(expIndex, "title", e.target.value)}
                           placeholder="Frontend Developer"
                         />
                       </div>
@@ -438,7 +464,6 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
                             type="month"
                             value={exp.startDate}
                             onChange={(e) => updateExperience(expIndex, "startDate", e.target.value)}
-                            className={exp.startDate ? "" : "text-slate-400"}
                           />
                           {!exp.startDate && (
                             <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">Start date</span>
@@ -453,7 +478,6 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
                             value={exp.endDate}
                             onChange={(e) => updateExperience(expIndex, "endDate", e.target.value)}
                             disabled={exp.current}
-                            className={exp.endDate || exp.current ? "" : "text-slate-400"}
                           />
                           {!exp.endDate && !exp.current && (
                             <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">End date</span>
@@ -792,6 +816,96 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
                     <Button onClick={addProject} variant="outline">
                       <Plus className="w-4 h-4 mr-2" />
                       Add Your First Project
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            )}
+          </Card>
+        );
+      case "certifications":
+        return (
+          <Card>
+            <CardHeader
+              className="flex flex-row items-center justify-between space-y-0 pb-2 cursor-pointer"
+              onClick={() => toggleSection("certifications")}
+            >
+              <div className="flex items-center space-x-3">
+                <GripVertical className="w-4 h-4 text-slate-400" />
+                <h3 className="font-semibold text-slate-900">Certifications</h3>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={e => { e.stopPropagation(); addCertification(); }}
+                className="px-3 py-1 text-xs"
+              >
+                <Plus className="w-3 h-3 mr-1" />
+                Add Certification
+              </Button>
+            </CardHeader>
+            {!collapsedSections.has("certifications") && (
+              <CardContent className="space-y-4">
+                {data.certifications.map((cert, certIndex) => (
+                  <div key={certIndex} className="border border-slate-200 rounded-md p-4 bg-slate-50 relative">
+                    <Button
+                      size="icon"
+                      variant="destructive"
+                      className="absolute top-2 right-2"
+                      onClick={() => removeCertification(certIndex)}
+                      title="Remove Certification"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <Label>Certification Name</Label>
+                        <Input
+                          value={cert.name}
+                          onChange={e => updateCertification(certIndex, "name", e.target.value)}
+                          placeholder="AWS Certified Solutions Architect"
+                        />
+                      </div>
+                      <div>
+                        <Label>Issuer</Label>
+                        <Input
+                          value={cert.issuer}
+                          onChange={e => updateCertification(certIndex, "issuer", e.target.value)}
+                          placeholder="Amazon Web Services"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <Label>Date</Label>
+                        <div className="relative">
+                          <Input
+                            type="month"
+                            value={cert.date}
+                            onChange={e => updateCertification(certIndex, "date", e.target.value)}
+                          />
+                          {!cert.date && (
+                            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">Date</span>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <Label>URL (Optional)</Label>
+                        <Input
+                          value={cert.url}
+                          onChange={e => updateCertification(certIndex, "url", e.target.value)}
+                          placeholder="https://example.com/cert"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {data.certifications.length === 0 && (
+                  <div className="text-center py-8 text-slate-500">
+                    <p className="mb-4">No certifications added yet</p>
+                    <Button onClick={addCertification} variant="outline">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Your First Certification
                     </Button>
                   </div>
                 )}
