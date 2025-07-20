@@ -89,7 +89,7 @@ export default function ResumePreview({
             <h2 style={{ color: accentColor, borderColor: accentColor }} className="text-lg font-bold mb-3 border-b-2 pb-1">
               PROFESSIONAL SUMMARY
             </h2>
-            <p className="text-slate-700">{data.summary}</p>
+            <div className="text-slate-700" dangerouslySetInnerHTML={{ __html: data.summary }} />
           </div>
         ) : null;
       case "experience":
@@ -191,7 +191,7 @@ export default function ResumePreview({
               {data.projects.map((project, index) => (
                 <div key={index}>
                   <h3 className="font-semibold text-slate-900">{project.name}</h3>
-                  <p className="text-slate-700 mb-2">{project.description}</p>
+                  <div className="text-slate-700 mb-2" dangerouslySetInnerHTML={{ __html: project.description }} />
                   {project.technologies.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {project.technologies.map((tech, techIndex) => (

@@ -82,7 +82,8 @@ export async function setupAuth(app: Express) {
         userInfoURL: issuer.userinfo_endpoint,
         clientID: process.env.GOOGLE_CLIENT_ID!,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-        callbackURL: 'https://verbose-zebra-ppq547rjgp9c7rwr-5000.app.github.dev/api/callback',
+        //callbackURL: 'https://verbose-zebra-ppq547rjgp9c7rwr-5000.app.github.dev/api/callback',
+        callbackURL: 'http://localhost:5000/api/callback',
         scope: 'openid email profile',
         profile: true, // ensure profile is fetched
       },

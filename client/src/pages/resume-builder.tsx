@@ -173,7 +173,7 @@ export default function ResumeBuilder() {
 
     const timeoutId = setTimeout(() => {
       updateResumeMutation.mutate(resumeData);
-    }, 15000); // Auto-save after 15 seconds of inactivity
+    }, 60000); // Auto-save after 60 seconds of inactivity
 
     return () => clearTimeout(timeoutId);
   }, [resumeData, id]);
