@@ -1,0 +1,233 @@
+
+/* Remove custom background and match website design */
+.carouselSection {
+  width: 100% !important;
+  max-width: 1200px !important;
+  margin: 0 auto !important;
+  padding: 4rem 1rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: transparent !important; /* Remove gradient background */
+  background-image: none !important;
+  background-color: transparent !important;
+}
+
+.carouselHeading {
+  text-align: center !important;
+  margin-bottom: 3rem !important;
+}
+
+.carouselHeading h2 {
+  font-size: 2.5rem !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  color: #1f2937 !important;
+  margin: 0 !important;
+}
+
+.carouselWrapper {
+  width: 100% !important;
+  position: relative !important;
+  max-width: 1100px !important;
+}
+
+.carousel {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.carouselContent {
+  margin-left: -0.75rem !important;
+  display: flex !important;
+}
+
+.carouselItem {
+  padding-left: 0.75rem !important;
+  flex: 0 0 25% !important; /* Show 4 cards on desktop */
+  min-width: 0 !important;
+}
+
+.cardContainer {
+  width: 100% !important;
+  display: flex !important;
+  justify-content: center !important;
+}
+
+/* Enhanced card design with no custom backgrounds */
+.card {
+  position: relative !important;
+  background: #ffffff !important;
+  border-radius: 1rem !important;
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  border: 1px solid #e5e7eb !important;
+  width: 100% !important;
+  max-width: 260px !important;
+  height: 340px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  cursor: pointer !important;
+  outline: none !important;
+  padding: 1.25rem !important;
+  gap: 0.75rem !important;
+}
+
+.card:hover,
+.card:focus {
+  transform: translateY(-4px) !important;
+  box-shadow: 
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  border-color: #3b82f6 !important;
+}
+
+/* Preview wrapper with clean design */
+.previewWrapper {
+  width: 100% !important;
+  height: 240px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  border-radius: 0.5rem !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.scaledA4Preview {
+  width: 180px !important;
+  height: 254px !important;
+  transform: scale(0.7) !important;
+  transform-origin: center !important;
+  overflow: hidden !important;
+  border-radius: 0.25rem !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  background: white !important;
+}
+
+/* Card label styling */
+.cardLabel {
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  color: #374151 !important;
+  text-align: center !important;
+  margin: 0 !important;
+}
+
+/* Navigation buttons */
+.carouselPrevious,
+.carouselNext {
+  position: absolute !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  z-index: 10 !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.carouselPrevious {
+  left: -22px !important;
+}
+
+.carouselNext {
+  right: -22px !important;
+}
+
+.carouselPrevious:hover,
+.carouselNext:hover {
+  background: #ffffff !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Responsive design for different screen sizes */
+@media (max-width: 1200px) {
+  .carouselItem {
+    flex: 0 0 33.333% !important; /* Show 3 cards on medium screens */
+  }
+}
+
+@media (max-width: 900px) {
+  .carouselItem {
+    flex: 0 0 50% !important; /* Show 2 cards on smaller screens */
+  }
+  
+  .carouselPrevious {
+    left: -16px !important;
+  }
+  
+  .carouselNext {
+    right: -16px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .carouselSection {
+    padding: 3rem 0.5rem !important;
+  }
+  
+  .carouselHeading h2 {
+    font-size: 2rem !important;
+  }
+  
+  .carouselItem {
+    flex: 0 0 100% !important; /* Show 1 card on mobile */
+  }
+  
+  .card {
+    max-width: 280px !important;
+    height: 360px !important;
+    padding: 1rem !important;
+  }
+  
+  .previewWrapper {
+    height: 260px !important;
+  }
+  
+  .carouselPrevious,
+  .carouselNext {
+    width: 40px !important;
+    height: 40px !important;
+  }
+  
+  .carouselPrevious {
+    left: -12px !important;
+  }
+  
+  .carouselNext {
+    right: -12px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .card {
+    max-width: 260px !important;
+    height: 340px !important;
+  }
+  
+  .scaledA4Preview {
+    transform: scale(0.65) !important;
+  }
+  
+  .carouselPrevious {
+    left: -8px !important;
+  }
+  
+  .carouselNext {
+    right: -8px !important;
+  }
+}

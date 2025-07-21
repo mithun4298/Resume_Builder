@@ -1,0 +1,7 @@
+/* Color swatch for color picker buttons */
+.color-swatch[data-color="#2563EB"] { background-color: #2563EB; }
+.color-swatch[data-color="#DC2626"] { background-color: #DC2626; }
+.color-swatch[data-color="#059669"] { background-color: #059669; }
+.color-swatch[data-color="#7C3AED"] { background-color: #7C3AED; }
+.color-swatch[data-color="#EA580C"] { background-color: #EA580C; }
+.color-swatch[data-color="#0891B2"] { background-color: #0891B2; }

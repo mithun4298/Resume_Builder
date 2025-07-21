@@ -1,6 +1,7 @@
 import React, { useState, lazy, Suspense } from "react";
-import { DragDropContext, Droppable, Draggable, DropResult } from "react-beautiful-dnd";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { Button } from "@/components/ui/button";
+import "./resume-editor.module.css";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -108,7 +109,7 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
   });
 
   // Drag-and-drop section ordering
-  function handleDragEnd(result: DropResult) {
+  function handleDragEnd(result: any) {
     if (!result.destination) return;
     const items = Array.from(sectionOrder);
     const [removed] = items.splice(result.source.index, 1);
@@ -940,23 +941,23 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
       {activeTab === "content" && (
         <DragDropContext onDragEnd={handleDragEnd}>
           <Droppable droppableId="resumeSections">
-            {(provided) => (
-              <div ref={provided.innerRef} {...provided.droppableProps}>
+            {(droppableProvided: any) => (
+              <div ref={droppableProvided.innerRef} {...droppableProvided.droppableProps}>
                 {sectionOrder.map((key, idx) => (
                   <Draggable key={key} draggableId={key} index={idx}>
-                    {(provided) => (
+                    {(draggableProvided: any) => (
                       <div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        {...provided.dragHandleProps}
-                        style={{ margin: "0 0 16px 0", ...provided.draggableProps.style }}
+                        ref={draggableProvided.innerRef}
+                        {...draggableProvided.draggableProps}
+                        {...draggableProvided.dragHandleProps}
+                        className="mb-4"
                       >
                         {renderSection(key)}
                       </div>
                     )}
                   </Draggable>
                 ))}
-                {provided.placeholder}
+                {droppableProvided.placeholder}
               </div>
             )}
           </Droppable>
@@ -1072,9 +1073,11 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
             {["#2563EB","#DC2626","#059669","#7C3AED","#EA580C","#0891B2"].map((color) => (
               <button
                 key={color}
-                className="w-8 h-8 rounded border-2 border-slate-200"
-                style={{ backgroundColor: color }}
+                className="w-8 h-8 rounded border-2 border-slate-200 color-swatch"
+                data-color={color}
                 onClick={() => setDesignSettings({ ...designSettings, accentColor: color })}
+                title={`Set accent color to ${color}`}
+                aria-label={`Set accent color to ${color}`}
               />
             ))}
           </div>
