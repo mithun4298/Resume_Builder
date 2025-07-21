@@ -320,17 +320,8 @@ export default function ResumeBuilder() {
             zIndex: -1
           }}
         >
-          <div
-            className="resume-preview-root-ui"
-            style={{
-              width: "210mm", // A4 width
-              minHeight: "295mm", // A4 height
-              background: "white",
-              color: "black",
-              boxSizing: "border-box",
-              padding: "5mm 5mm",
-            }}
-          >
+          {/* For multi-page resumes, you can split content into multiple .pdf-page divs. For now, one page: */}
+          <div className="resume-preview-root-ui pdf-page">
             <React.Suspense fallback={<div>Loading...</div>}>
               {selectedTemplate === "classic" && <ClassicTemplate resumeData={resumeData} />}
               {selectedTemplate === "minimalist" && <MinimalistTemplate resumeData={resumeData} />}
