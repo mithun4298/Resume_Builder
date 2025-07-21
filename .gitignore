@@ -7,3 +7,5 @@ vite.config.ts.*
 # Ignore environment variable files
 .env
 .env.*
+# Ignore VS Code settings
+.vscode/
