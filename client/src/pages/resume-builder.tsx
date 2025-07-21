@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { loadHtml2PdfScript } from "@/lib/loadHtml2Pdf";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/header";
@@ -13,6 +14,7 @@ import { Eye, EyeOff } from "lucide-react";
 import type { Resume, ResumeData } from "@shared/schema";
 
 import Footer from "@/components/footer";
+
 export default function ResumeBuilder() {
   const { id } = useParams();
   const [, navigate] = useLocation();
@@ -22,6 +24,8 @@ export default function ResumeBuilder() {
   const [resumeData, setResumeData] = useState<ResumeData | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [atsScore, setAtsScore] = useState<{ score: number; feedback: string[]; suggestions: string[] } | null>(null);
+  // Add template selection state for preview/export
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("modern");
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -282,12 +286,14 @@ export default function ResumeBuilder() {
           {resumeData && (
             <ResumePreview 
               data={resumeData} 
-              template="modern"
+              template={selectedTemplate}
+              setSelectedTemplate={setSelectedTemplate}
               fontSize={11}
               lineHeight={1.6}
               margins={20}
               accentColor="#2563EB"
               fontFamily="Inter"
+              className="resume-preview-root"
             />
           )}
         </div>

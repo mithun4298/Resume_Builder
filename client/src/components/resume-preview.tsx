@@ -5,21 +5,24 @@ import { Monitor, Smartphone, Maximize } from "lucide-react";
 import type { ResumeData } from "@shared/schema";
 import React, { useState } from "react";
 import TemplateSelector from "./resume-templates/TemplateSelector";
-import ModernTemplate from "./resume-templates/ModernTemplate";
-import ClassicTemplate from "./resume-templates/ClassicTemplate";
-import MinimalistTemplate from "./resume-templates/MinimalistTemplate";
-import ElegantTemplate from "./resume-templates/ElegantTemplate";
-import BoldTemplate from "./resume-templates/BoldTemplate";
-import TwoColumnTemplate from "./resume-templates/TwoColumnTemplate";
+const ModernTemplate = React.lazy(() => import("./resume-templates/ModernTemplate"));
+const ClassicTemplate = React.lazy(() => import("./resume-templates/ClassicTemplate"));
+const MinimalistTemplate = React.lazy(() => import("./resume-templates/MinimalistTemplate"));
+const ElegantTemplate = React.lazy(() => import("./resume-templates/ElegantTemplate"));
+const BoldTemplate = React.lazy(() => import("./resume-templates/BoldTemplate"));
+const TwoColumnTemplate = React.lazy(() => import("./resume-templates/TwoColumnTemplate"));
+
 
 interface ResumePreviewProps {
   data: ResumeData;
   template?: string;
+  setSelectedTemplate?: (template: string) => void;
   fontSize?: number;
   lineHeight?: number;
   margins?: number;
   accentColor?: string;
   fontFamily?: string;
+  className?: string;
 }
 
 
@@ -36,9 +39,16 @@ type SectionKey = typeof SECTION_KEYS[number];
 
 
 export default function ResumePreview({
-  data
+  data,
+  template = "modern",
+  setSelectedTemplate,
+  fontSize,
+  lineHeight,
+  margins,
+  accentColor,
+  fontFamily,
+  className = ""
 }: ResumePreviewProps) {
-  const [selectedTemplate, setSelectedTemplate] = useState<string>("modern");
 
   const templates = [
     {
@@ -74,7 +84,7 @@ export default function ResumePreview({
   ];
 
   const renderSelectedTemplate = () => {
-    switch (selectedTemplate) {
+    switch (template) {
       case "classic":
         return <ClassicTemplate resumeData={data} />;
       case "minimalist":
@@ -99,7 +109,7 @@ export default function ResumePreview({
         </div>
         <div className="flex items-center space-x-2">
           <div className="flex items-center space-x-2 text-sm text-slate-600">
-            <span>Template: {templates.find(t => t.key === selectedTemplate)?.name}</span>
+            <span>Template: {templates.find(t => t.key === template)?.name}</span>
           </div>
         </div>
       </div>
@@ -108,8 +118,8 @@ export default function ResumePreview({
       <div className="p-4 bg-slate-50">
         <TemplateSelector
           templates={templates}
-          selected={selectedTemplate}
-          onSelect={setSelectedTemplate}
+          selected={template}
+          onSelect={setSelectedTemplate ?? (() => {})}
         />
       </div>
 
@@ -117,7 +127,9 @@ export default function ResumePreview({
       <div className="flex-1 p-8 overflow-y-auto bg-slate-50">
         <div className="max-w-4xl mx-auto">
           <Card className="bg-white shadow-lg overflow-hidden">
-            {renderSelectedTemplate()}
+            <React.Suspense fallback={<div className="p-8 text-center">Loading template...</div>}>
+              {renderSelectedTemplate()}
+            </React.Suspense>
           </Card>
         </div>
       </div>

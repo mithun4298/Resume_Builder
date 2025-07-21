@@ -109,7 +109,12 @@ export const insertResumeSchema = createInsertSchema(resumes).pick({
 });
 
 export type UpsertUser = typeof users.$inferInsert;
-export type User = typeof users.$inferSelect;
+export type User = Omit<typeof users.$inferSelect, 'email' | 'firstName' | 'lastName' | 'profileImageUrl'> & {
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  profileImageUrl?: string;
+};
 export type Resume = typeof resumes.$inferSelect;
 export type InsertResume = z.infer<typeof insertResumeSchema>;
 export type ResumeData = z.infer<typeof resumeSchema>;

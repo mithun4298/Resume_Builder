@@ -1,4 +1,4 @@
-import { Issuer } from 'openid-client'; // Issuer used for discovery, still valid
+import { Issuer } from 'openid-client';
 import passport from 'passport';
 import session from 'express-session';
 import type { Express, RequestHandler } from 'express';
@@ -70,6 +70,29 @@ export async function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // Middleware to memoize/cached user for each request
+  app.use((req, res, next) => {
+    if (req.user) {
+      // User already deserialized for this request
+      return next();
+    }
+    // If not authenticated, just continue
+    if (!req.isAuthenticated || !req.isAuthenticated()) {
+      return next();
+    }
+    // Defensive: If req.session.passport?.user exists, force deserialization once
+    const sessionAny = req.session as any;
+    if (sessionAny && sessionAny.passport && sessionAny.passport.user && !req.user) {
+      // This triggers passport.deserializeUser only once
+      req.login(sessionAny.passport.user, (err: any) => {
+        if (err) return next(err);
+        next();
+      });
+    } else {
+      next();
+    }
+  });
+
   // Discover Google OIDC endpoints and use them in the strategy
   const issuer = await Issuer.discover('https://accounts.google.com');
 
@@ -77,48 +100,33 @@ export async function setupAuth(app: Express) {
     new OpenIDConnectStrategy(
       {
         issuer: 'https://accounts.google.com',
-        authorizationURL: issuer.authorization_endpoint,
-        tokenURL: issuer.token_endpoint,
-        userInfoURL: issuer.userinfo_endpoint,
+        authorizationURL: issuer.authorization_endpoint as string,
+        tokenURL: issuer.token_endpoint as string,
+        userInfoURL: issuer.userinfo_endpoint as string,
         clientID: process.env.GOOGLE_CLIENT_ID!,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
         //callbackURL: 'https://verbose-zebra-ppq547rjgp9c7rwr-5000.app.github.dev/api/callback',
         callbackURL: 'http://localhost:5000/api/callback',
         scope: 'openid email profile',
-        profile: true, // ensure profile is fetched
       },
       async (
-        issuer: any,
-        sub: string,
+        issuer: string,
         profile: any,
-        jwtClaims: any,
-        accessToken: string,
-        refreshToken: string,
-        params: any,
         done: (err: any, user?: any) => void
       ) => {
-        // Fallback to jwtClaims if profile is empty, and decode if it's a string
-        let userProfile: any = profile && Object.keys(profile).length > 0 ? profile : jwtClaims;
-        if (typeof userProfile === 'string') {
-          // JWT: header.payload.signature
-          try {
-            const payload = userProfile.split('.')[1];
-            userProfile = JSON.parse(Buffer.from(payload, 'base64').toString('utf8'));
-          } catch (e) {
-            console.error('[OpenIDConnectStrategy] Failed to decode JWT claims:', e);
-            userProfile = {};
-          }
-        }
+        // The profile object should contain all user info and tokens
+        let userProfile: any = profile;
         // Normalize: always set userProfile.id from sub if present
         if (userProfile && userProfile.sub && !userProfile.id) {
           userProfile.id = userProfile.sub;
         }
         console.log('[OpenIDConnectStrategy] profile:', userProfile);
         await upsertUser(userProfile);
+        // Attach tokens if present (may need to adjust depending on provider)
         const tokens = {
-          access_token: accessToken,
-          refresh_token: refreshToken,
-          exp: params && params.expires_in ? Math.floor(Date.now() / 1000) + params.expires_in : undefined,
+          access_token: userProfile.access_token,
+          refresh_token: userProfile.refresh_token,
+          exp: userProfile.exp || undefined,
         };
         updateUserSession(userProfile, tokens);
         done(null, userProfile);
@@ -137,15 +145,33 @@ export async function setupAuth(app: Express) {
     });
   });
   // Fetch user from DB by id and restore session tokens
+  // In-memory user cache to reduce DB calls (5 min TTL)
+  const userCache = new Map();
   passport.deserializeUser(async (sessionObj: any, cb) => {
-    console.log('[deserializeUser] sessionObj:', sessionObj);
+    const cacheKey = sessionObj.id;
+    if (userCache.has(cacheKey)) {
+      // Return cached user, no log
+      return cb(null, userCache.get(cacheKey));
+    }
+    // Only log when actually fetching from DB
+    console.log('[deserializeUser] DB fetch for user:', sessionObj.id);
     try {
-      const user = await storage.getUser(sessionObj.id);
+      let user = await storage.getUser(sessionObj.id);
       if (!user) return cb(null, false);
+      // Ensure user fields are string | undefined, not null
+      user = {
+        ...user,
+        email: user.email ?? undefined,
+        firstName: user.firstName ?? undefined,
+        lastName: user.lastName ?? undefined,
+        profileImageUrl: user.profileImageUrl ?? undefined,
+      };
       // Attach session tokens to user object for middleware
       (user as any).access_token = sessionObj.access_token;
       (user as any).refresh_token = sessionObj.refresh_token;
       (user as any).expires_at = sessionObj.expires_at;
+      userCache.set(cacheKey, user);
+      setTimeout(() => userCache.delete(cacheKey), 5 * 60 * 1000); // 5 min TTL
       cb(null, user);
     } catch (err) {
       cb(err);
