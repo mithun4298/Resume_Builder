@@ -67,172 +67,101 @@ export async function setupAuth(app: Express) {
   console.log('[setupAuth] Initializing authentication routes');
   app.set('trust proxy', 1);
   app.use(getSession());
-  app.use(passport.initialize());
-  app.use(passport.session());
 
-  // Middleware to memoize/cached user for each request
-  app.use((req, res, next) => {
-    if (req.user) {
-      // User already deserialized for this request
-      return next();
-    }
-    // If not authenticated, just continue
-    if (!req.isAuthenticated || !req.isAuthenticated()) {
-      return next();
-    }
-    // Defensive: If req.session.passport?.user exists, force deserialization once
-    const sessionAny = req.session as any;
-    if (sessionAny && sessionAny.passport && sessionAny.passport.user && !req.user) {
-      // This triggers passport.deserializeUser only once
-      req.login(sessionAny.passport.user, (err: any) => {
-        if (err) return next(err);
-        next();
-      });
-    } else {
-      next();
-    }
-  });
-
-  // Discover Google OIDC endpoints and use them in the strategy
+  // Discover Google OIDC endpoints
   const issuer = await Issuer.discover('https://accounts.google.com');
+  const client = new issuer.Client({
+    client_id: process.env.GOOGLE_CLIENT_ID!,
+    client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+    redirect_uris: ['http://localhost:5000/api/callback'],
+    response_types: ['code'],
+  });
 
-  passport.use(
-    new OpenIDConnectStrategy(
-      {
-        issuer: 'https://accounts.google.com',
-        authorizationURL: issuer.authorization_endpoint as string,
-        tokenURL: issuer.token_endpoint as string,
-        userInfoURL: issuer.userinfo_endpoint as string,
-        clientID: process.env.GOOGLE_CLIENT_ID!,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-        //callbackURL: 'https://verbose-zebra-ppq547rjgp9c7rwr-5000.app.github.dev/api/callback',
-        callbackURL: 'http://localhost:5000/api/callback',
-        scope: 'openid email profile',
-      },
-      async (
-        issuer: string,
-        profile: any,
-        done: (err: any, user?: any) => void
-      ) => {
-        // The profile object should contain all user info and tokens
-        let userProfile: any = profile;
-        // Normalize: always set userProfile.id from sub if present
-        if (userProfile && userProfile.sub && !userProfile.id) {
-          userProfile.id = userProfile.sub;
-        }
-        console.log('[OpenIDConnectStrategy] profile:', userProfile);
-        await upsertUser(userProfile);
-        // Attach tokens if present (may need to adjust depending on provider)
-        const tokens = {
-          access_token: userProfile.access_token,
-          refresh_token: userProfile.refresh_token,
-          exp: userProfile.exp || undefined,
-        };
-        updateUserSession(userProfile, tokens);
-        done(null, userProfile);
-      }
-    )
-  );
-
-  // Store user id and session tokens in session
-  passport.serializeUser((user: any, cb) => {
-    console.log('[serializeUser] user:', user);
-    cb(null, {
-      id: user.id,
-      access_token: user.access_token,
-      refresh_token: user.refresh_token,
-      expires_at: user.expires_at,
+  // Start login: redirect to Google
+  app.get('/api/login', (req, res) => {
+    const url = client.authorizationUrl({
+      scope: 'openid email profile',
+      prompt: 'login consent',
     });
+    res.redirect(url);
   });
-  // Fetch user from DB by id and restore session tokens
-  // In-memory user cache to reduce DB calls (5 min TTL)
-  const userCache = new Map();
-  passport.deserializeUser(async (sessionObj: any, cb) => {
-    const cacheKey = sessionObj.id;
-    if (userCache.has(cacheKey)) {
-      // Return cached user, no log
-      return cb(null, userCache.get(cacheKey));
-    }
-    // Only log when actually fetching from DB
-    console.log('[deserializeUser] DB fetch for user:', sessionObj.id);
+
+  // Callback: handle Google response, get tokens, store in session
+  app.get('/api/callback', async (req, res) => {
     try {
-      let user = await storage.getUser(sessionObj.id);
-      if (!user) return cb(null, false);
-      // Ensure user fields are string | undefined, not null
-      user = {
-        ...user,
-        email: user.email ?? undefined,
-        firstName: user.firstName ?? undefined,
-        lastName: user.lastName ?? undefined,
-        profileImageUrl: user.profileImageUrl ?? undefined,
+      const params = client.callbackParams(req);
+      const tokenSet = await client.callback('http://localhost:5000/api/callback', params, { state: undefined });
+      let userInfo = {};
+      if (tokenSet.access_token) {
+        userInfo = await client.userinfo(tokenSet.access_token);
+      }
+      // Save user and tokens in session (type assertion for TS)
+      (req.session as any).user = {
+        id: (userInfo as any).sub,
+        email: (userInfo as any).email,
+        firstName: (userInfo as any).given_name,
+        lastName: (userInfo as any).family_name,
+        profileImageUrl: (userInfo as any).picture,
+        access_token: tokenSet.access_token,
+        refresh_token: tokenSet.refresh_token,
+        expires_at: tokenSet.expires_at || (tokenSet.expires_in ? Math.floor(Date.now() / 1000) + tokenSet.expires_in : undefined),
       };
-      // Attach session tokens to user object for middleware
-      (user as any).access_token = sessionObj.access_token;
-      (user as any).refresh_token = sessionObj.refresh_token;
-      (user as any).expires_at = sessionObj.expires_at;
-      userCache.set(cacheKey, user);
-      setTimeout(() => userCache.delete(cacheKey), 5 * 60 * 1000); // 5 min TTL
-      cb(null, user);
+      await upsertUser((req.session as any).user);
+      res.redirect('/');
     } catch (err) {
-      cb(err);
+      console.error('[OIDC callback error]', err);
+      res.redirect('/api/login');
     }
   });
 
-  app.get('/api/auth/user', (req: import('express').Request, res: import('express').Response) => {
-    console.log('[GET /api/auth/user] req.user:', req.user);
-    if (req.isAuthenticated && req.isAuthenticated() && req.user) {
-      res.json({ user: req.user });
+  // Auth user endpoint
+  app.get('/api/auth/user', (req, res) => {
+    if ((req.session as any).user) {
+      res.json({ user: (req.session as any).user });
     } else {
       res.status(401).json({ message: 'Unauthorized' });
     }
   });
 
-  app.get('/api/login', passport.authenticate('openidconnect', {
-    prompt: 'login consent',
-    scope: ['openid', 'email', 'profile'],
-  }));
-
-  app.get('/api/callback', passport.authenticate('openidconnect', {
-    failureRedirect: '/api/login',
-    successRedirect: '/',
-  }));
-
+  // Logout
   app.get('/api/logout', (req, res) => {
-    req.logout(() => {
+    req.session.destroy(() => {
       res.redirect('/');
     });
   });
+
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
-  console.log('[isAuthenticated] req.user:', req.user, 'isAuthenticated:', req.isAuthenticated());
-  const user = req.user as any;
-
-  if (!req.isAuthenticated() || !user.expires_at) {
+  const user = (req.session as any).user;
+  console.log('[isAuthenticated] session.user:', user);
+  if (!user || !user.expires_at) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
-
   const now = Math.floor(Date.now() / 1000);
   if (now <= user.expires_at) {
     return next();
   }
-
   const refreshToken = user.refresh_token;
   if (!refreshToken) {
     res.status(401).json({ message: 'Unauthorized' });
     return;
   }
-
   try {
     const issuer = await Issuer.discover('https://accounts.google.com');
     const googleClient = new issuer.Client({
       client_id: process.env.GOOGLE_CLIENT_ID!,
       client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-      redirect_uris: ['https://verbose-zebra-ppq547rjgp9c7rwr-5000.app.github.dev/api/callback'],
+      redirect_uris: ['http://localhost:5000/api/callback'],
       response_types: ['code'],
     });
     const tokenResponse = await googleClient.refresh(refreshToken);
     updateUserSession(user, tokenResponse);
+    // Update session with new tokens
+    user.access_token = tokenResponse.access_token;
+    user.refresh_token = tokenResponse.refresh_token;
+    user.expires_at = tokenResponse.expires_at || (tokenResponse.expires_in ? Math.floor(Date.now() / 1000) + tokenResponse.expires_in : undefined);
+    (req.session as any).user = user;
     return next();
   } catch (error: any) {
     console.error('[OIDC Refresh Error]', error);

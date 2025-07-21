@@ -14,7 +14,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = (req.session as any).user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized: No user in session' });
+      }
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
@@ -26,7 +29,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Resume routes
   app.get('/api/resumes', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = (req.session as any).user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized: No user in session' });
+      }
       const resumes = await storage.getUserResumes(userId);
       res.json(resumes);
     } catch (error) {
@@ -37,7 +43,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/resumes/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = (req.session as any).user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized: No user in session' });
+      }
       const resumeId = parseInt(req.params.id);
       const resume = await storage.getResume(resumeId, userId);
       
@@ -54,7 +63,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/resumes', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = (req.session as any).user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized: No user in session' });
+      }
       const resumeData = insertResumeSchema.parse(req.body);
       
       const resume = await storage.createResume(userId, resumeData);
@@ -70,7 +82,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put('/api/resumes/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = (req.session as any).user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized: No user in session' });
+      }
       const resumeId = parseInt(req.params.id);
       const resumeData = insertResumeSchema.partial().parse(req.body);
       
@@ -92,7 +107,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/resumes/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = (req.session as any).user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized: No user in session' });
+      }
       const resumeId = parseInt(req.params.id);
       
       const deleted = await storage.deleteResume(resumeId, userId);
@@ -192,7 +210,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // PDF export route
   app.post('/api/resumes/:id/export', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.id;
+      const userId = (req.session as any).user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: 'Unauthorized: No user in session' });
+      }
       const resumeId = parseInt(req.params.id);
       
       const resume = await storage.getResume(resumeId, userId);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -9,11 +9,19 @@ import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/header";
 import ResumeEditor from "@/components/resume-editor";
 import ResumePreview from "@/components/resume-preview";
+import { Card } from "@/components/ui/card"; // <--- Needed for hidden export
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff } from "lucide-react";
 import type { Resume, ResumeData } from "@shared/schema";
+import React from "react";
 
-import Footer from "@/components/footer";
+// Lazy import your templates
+const ModernTemplate = React.lazy(() => import("@/components/resume-templates/ModernTemplate"));
+const ClassicTemplate = React.lazy(() => import("@/components/resume-templates/ClassicTemplate"));
+const MinimalistTemplate = React.lazy(() => import("@/components/resume-templates/MinimalistTemplate"));
+const ElegantTemplate = React.lazy(() => import("@/components/resume-templates/ElegantTemplate"));
+const BoldTemplate = React.lazy(() => import("@/components/resume-templates/BoldTemplate"));
+const TwoColumnTemplate = React.lazy(() => import("@/components/resume-templates/TwoColumnTemplate"));
 
 export default function ResumeBuilder() {
   const { id } = useParams();
@@ -21,13 +29,19 @@ export default function ResumeBuilder() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
+
   const [resumeData, setResumeData] = useState<ResumeData | null>(null);
   const [showPreview, setShowPreview] = useState(false);
-  const [atsScore, setAtsScore] = useState<{ score: number; feedback: string[]; suggestions: string[] } | null>(null);
-  // Add template selection state for preview/export
-  const [selectedTemplate, setSelectedTemplate] = useState<string>("modern");
+  const [atsScore, setAtsScore] = useState(null);
 
-  // Redirect to login if not authenticated
+  // Template selection for preview/export
+  const [selectedTemplate, setSelectedTemplate] = useState("modern");
+
+  // PDF Export state
+  const [exportPdfPending, setExportPdfPending] = useState(false);
+  const [pendingExport, setPendingExport] = useState(false);
+
+  // Auth Redirect
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       toast({
@@ -42,17 +56,15 @@ export default function ResumeBuilder() {
     }
   }, [isAuthenticated, authLoading, toast]);
 
+  // Resume Query
   const { data: resume, isLoading } = useQuery<Resume>({
     queryKey: ["/api/resumes", id],
     enabled: !!id && isAuthenticated,
     retry: false,
   });
 
-  // Initialize resume data when resume is loaded
   useEffect(() => {
-    if (resume && resume.data) {
-      setResumeData(resume.data as ResumeData);
-    }
+    if (resume && resume.data) setResumeData(resume.data as ResumeData);
   }, [resume]);
 
   const updateResumeMutation = useMutation({
@@ -87,134 +99,113 @@ export default function ResumeBuilder() {
     },
   });
 
-  const exportPdfMutation = useMutation({
-    mutationFn: async () => {
-      if (!id) throw new Error("No resume ID");
-      const response = await fetch(`/api/resumes/${id}/export`, {
-        method: "POST",
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Export failed");
-      const blob = await response.blob();
-      // Check if the blob is a valid PDF by reading the first few bytes
-      const arrayBuffer = await blob.slice(0, 4).arrayBuffer();
-      const header = new TextDecoder().decode(arrayBuffer);
-      if (header !== '%PDF') {
-        // Try to get error text for debugging
-        const errorText = await blob.text();
-        throw new Error("Invalid PDF file. Server response: " + errorText);
-      }
-      return blob;
-    },
-    onSuccess: (blob) => {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${resume?.title || "resume"}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast({
-        title: "Success",
-        description: "Resume exported successfully!",
-      });
-    },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
+  // --- Export Trigger ---
+  const exportPdf = useCallback(async () => {
+    if (!showPreview) {
+      setShowPreview(true);
+      await new Promise((res) => setTimeout(res, 600));
+    }
+    setPendingExport(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showPreview]);
+
+  // PDF Export Effect (triggers offscreen resume for export)
+  useEffect(() => {
+    if (!pendingExport) return;
+    const doExport = async () => {
+      try {
+        setExportPdfPending(true);
+
+        if (!resumeData) {
+          toast({
+            title: "Error",
+            description: "Resume data not loaded. Cannot export PDF.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        await loadHtml2PdfScript();
+        await new Promise((r) => setTimeout(r, 100));
+
+        const element = document.querySelector(".resume-preview-root-ui");
+        if (!element) {
+          toast({
+            title: "Error",
+            description: "Resume preview not found. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+        if (!element.textContent || element.textContent.trim().length < 50) {
+          toast({
+            title: "Error",
+            description: "Resume preview is empty. Please ensure your resume has content.",
+            variant: "destructive",
+          });
+          return;
+        }
+        if (!(window).html2pdf) {
+          toast({
+            title: "Error",
+            description: "PDF library not loaded. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const opt = {
+          margin: 0,
+          filename: `${resume?.title || "resume"}.pdf`,
+          image: { type: "jpeg", quality: 0.98 },
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            logging: false
+          },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        };
+
+        await window.html2pdf().set(opt).from(element).save();
+
         toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
+          title: "Success",
+          description: "Resume exported successfully!",
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to export resume. Please try again.",
           variant: "destructive",
         });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
+      } finally {
+        setExportPdfPending(false);
+        setPendingExport(false);
       }
-      toast({
-        title: "Error",
-        description: error.message || "Failed to export resume. Please try again.",
-        variant: "destructive",
-      });
-      // Optionally log the error for debugging
-      // eslint-disable-next-line no-console
-      if (error.message) console.error(error.message);
-    },
-  });
+    };
+    doExport();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingExport, resumeData, resume, toast]);
 
-  const calculateATSMutation = useMutation({
-    mutationFn: async (data: ResumeData) => {
-      const response = await apiRequest("POST", "/api/ai/calculate-ats-score", { resumeData: data });
-      return response.json();
-    },
-    onSuccess: (data) => {
-      setAtsScore(data);
-    },
-    onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-      toast({
-        title: "Error",
-        description: "Failed to calculate ATS score. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Auto-save functionality
+  // Auto-save
   useEffect(() => {
     if (!resumeData || !id) return;
-
     const timeoutId = setTimeout(() => {
       updateResumeMutation.mutate(resumeData);
-    }, 60000); // Auto-save after 60 seconds of inactivity
-
+    }, 60000);
     return () => clearTimeout(timeoutId);
   }, [resumeData, id]);
 
-  // Calculate ATS score when resume data changes - only if sufficient content exists
-  // ATS score calculation temporarily disabled
-  // useEffect(() => {
-  //   if (!resumeData) return;
-  //   
-  //   // Only calculate ATS score if there's meaningful content
-  //   const hasContent = resumeData.summary || 
-  //                     resumeData.experience.length > 0 || 
-  //                     resumeData.education.length > 0 ||
-  //                     resumeData.skills.technical.length > 0;
-  //   
-  //   if (!hasContent) return;
-  //
-  //   const timeoutId = setTimeout(() => {
-  //     calculateATSMutation.mutate(resumeData);
-  //   }, 3000); // Calculate ATS score after 3 seconds of inactivity
-  //
-  //   return () => clearTimeout(timeoutId);
-  // }, [resumeData]);
+  // Change Handler
+  const handleResumeDataChange = (newData: ResumeData) => setResumeData(newData);
 
-  const handleResumeDataChange = (newData: ResumeData) => {
-    setResumeData(newData);
-  };
-
-  if (authLoading || !isAuthenticated) {
-    return <div>Loading...</div>;
-  }
-
+  // Error/Loading States
+  if (authLoading || !isAuthenticated) return <div>Loading...</div>;
   if (!id) {
     navigate("/");
     return null;
   }
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50">
@@ -228,7 +219,6 @@ export default function ResumeBuilder() {
       </div>
     );
   }
-
   if (!resume) {
     return (
       <div className="min-h-screen bg-slate-50">
@@ -243,6 +233,7 @@ export default function ResumeBuilder() {
     );
   }
 
+  // ------- UI --------
   return (
     <div className="min-h-screen bg-slate-50">
       <Header>
@@ -257,11 +248,11 @@ export default function ResumeBuilder() {
             {showPreview ? "Edit" : "Preview"}
           </Button>
           <Button
-            onClick={() => exportPdfMutation.mutate()}
-            disabled={exportPdfMutation.isPending}
+            onClick={exportPdf}
+            disabled={exportPdfPending}
             className="bg-primary hover:bg-primary/90"
           >
-            {exportPdfMutation.isPending ? "Exporting..." : "Export PDF"}
+            {exportPdfPending ? "Exporting..." : "Export PDF"}
           </Button>
         </div>
       </Header>
@@ -274,15 +265,13 @@ export default function ResumeBuilder() {
               data={resumeData}
               onChange={handleResumeDataChange}
               atsScore={atsScore}
-              isCalculating={calculateATSMutation.isPending}
-              onExportPdf={() => exportPdfMutation.mutate()}
-              exportPdfPending={exportPdfMutation.isPending}
+              onExportPdf={exportPdf}
+              exportPdfPending={exportPdfPending}
             />
           )}
         </div>
-
-        {/* Preview Panel */}
-        <div className={`${showPreview ? "block" : "hidden"} md:block w-full md:w-1/2 lg:w-3/5 bg-slate-50`}>
+        {/* Main Preview Panel (UI) */}
+        <div className={`md:block w-full md:w-1/2 lg:w-3/5 bg-slate-50 ${showPreview ? '' : 'hidden md:block'}`}>
           {resumeData && (
             <ResumePreview 
               data={resumeData} 
@@ -293,7 +282,6 @@ export default function ResumeBuilder() {
               margins={20}
               accentColor="#2563EB"
               fontFamily="Inter"
-              className="resume-preview-root"
             />
           )}
         </div>
@@ -312,13 +300,50 @@ export default function ResumeBuilder() {
           </Button>
           <Button
             className="flex-1 bg-primary hover:bg-primary/90"
-            onClick={() => exportPdfMutation.mutate()}
-            disabled={exportPdfMutation.isPending}
+            onClick={exportPdf}
+            disabled={exportPdfPending}
           >
-            {exportPdfMutation.isPending ? "Exporting..." : "Export PDF"}
+            {exportPdfPending ? "Exporting..." : "Export PDF"}
           </Button>
         </div>
       </div>
+
+      {/* --- HIDDEN EXPORT-ONLY RENDER: ONLY VISIBLE TO SCRIPT --- */}
+      {pendingExport && resumeData && (
+        <div
+          style={{
+            position: "fixed",
+            left: "-9999px",
+            top: 0,
+            opacity: 0,
+            pointerEvents: "none",
+            zIndex: -1
+          }}
+        >
+          <div
+            className="resume-preview-root-ui"
+            style={{
+              width: "210mm", // A4 width
+              minHeight: "295mm", // A4 height
+              background: "white",
+              color: "black",
+              boxSizing: "border-box",
+              padding: "5mm 5mm",
+            }}
+          >
+            <React.Suspense fallback={<div>Loading...</div>}>
+              {selectedTemplate === "classic" && <ClassicTemplate resumeData={resumeData} />}
+              {selectedTemplate === "minimalist" && <MinimalistTemplate resumeData={resumeData} />}
+              {selectedTemplate === "elegant" && <ElegantTemplate resumeData={resumeData} />}
+              {selectedTemplate === "bold" && <BoldTemplate resumeData={resumeData} />}
+              {selectedTemplate === "twocolumn" && <TwoColumnTemplate resumeData={resumeData} />}
+              {["classic", "minimalist", "elegant", "bold", "twocolumn"].indexOf(selectedTemplate) === -1 && (
+                <ModernTemplate resumeData={resumeData} />
+              )}
+            </React.Suspense>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
