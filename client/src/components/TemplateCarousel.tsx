@@ -7,6 +7,8 @@ import MinimalistTemplate from "./resume-templates/MinimalistTemplate";
 import ElegantTemplate from "./resume-templates/ElegantTemplate";
 import BoldTemplate from "./resume-templates/BoldTemplate";
 import TwoColumnTemplate from "./resume-templates/TwoColumnTemplate";
+import ExecutiveLuxury from "./resume-templates/ExecutiveLuxury";
+import CreativeModern from "./resume-templates/CreativeModern";
 import type { ResumeData } from "@shared/schema";
 
 // Import the existing dummy data
@@ -19,6 +21,8 @@ const templates = [
   { id: "elegant", name: "Elegant", component: ElegantTemplate },
   { id: "bold", name: "Bold", component: BoldTemplate },
   { id: "two-column", name: "Two Column", component: TwoColumnTemplate },
+  { id: "executive-luxury", name: "Executive Luxury", component: ExecutiveLuxury },
+  { id: "creative-modern", name: "Creative Modern", component: CreativeModern },
 ];
 
 type TemplateCarouselProps = {
@@ -166,16 +170,6 @@ const TemplateCarousel = ({ onSelectTemplate = () => {} }: TemplateCarouselProps
       }} />
       
       <section className="w-full max-w-7xl mx-auto py-16 px-4 bg-transparent">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4 leading-tight">
-            Choose Your Perfect Resume Template
-          </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Professional templates designed to get you hired faster
-          </p>
-        </div>
-
         {/* Carousel Container */}
         <div 
           className="relative max-w-6xl mx-auto"
@@ -258,17 +252,20 @@ const TemplateCarousel = ({ onSelectTemplate = () => {} }: TemplateCarouselProps
         </div>
       </section>
 
-      {/* Template Preview Grid */}
-      <div className="max-w-6xl mx-auto px-4">
-        <h3 className="text-2xl font-semibold mb-6">Template Preview</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {templates.map((template) => (
-            <PreviewWrapper key={template.id}>
-              <template.component resumeData={dummyITResumeData} />
-            </PreviewWrapper>
+    
+       <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16 max-w-4xl mx-auto">
+          {[
+            { label: "Templates", value: "10+" },
+            { label: "Industries", value: "25+" },
+            { label: "ATS Tested", value: "100%" },
+            { label: "Customizable", value: "Fully" },
+          ].map((stat, index) => (
+            <div key={index} className="text-center">
+              <div className="text-3xl font-bold text-primary">{stat.value}</div>
+              <div className="text-muted-foreground">{stat.label}</div>
+            </div>
           ))}
         </div>
-      </div>
     </>
   );
 };
