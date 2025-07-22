@@ -16,8 +16,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import {
   GripVertical, ChevronDown, Plus, X, Sparkles, Check,
-  Calendar, MapPin, Mail, Phone, Globe, Palette, Type,
-  Settings, Download, Eye, FileText
+  Settings, Download, Eye, FileText, Type, Palette
 } from "lucide-react";
 import type { ResumeData } from "@shared/schema";
 
@@ -32,6 +31,7 @@ interface ResumeEditorProps {
   onExportPdf?: () => void;
   exportPdfPending?: boolean;
 }
+
 interface DesignSettings {
   template: string;
   fontSize: number;
@@ -40,13 +40,15 @@ interface DesignSettings {
   accentColor: string;
   fontFamily: string;
 }
+
 interface ResumeSettings {
   isPublic: boolean;
   allowComments: boolean;
   showContactInfo: boolean;
   atsOptimized: boolean;
+  fileName: string;
+  includeContactInfo: boolean;
 }
-
 
 const SECTION_KEYS = [
   "personal",
@@ -58,10 +60,205 @@ const SECTION_KEYS = [
   "projects"
 ] as const;
 
-
 type SectionKey = typeof SECTION_KEYS[number];
 
 function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, exportPdfPending }: ResumeEditorProps) {
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState<"content" | "design" | "settings">("content");
+  
+  // All sections collapsed by default
+  const [collapsedSections, setCollapsedSections] = useState<Set<SectionKey>>(
+    new Set([...SECTION_KEYS])
+  );
+  
+  // Use sectionOrder from data, fallback to default if missing
+  const sectionOrder = data.sectionOrder && data.sectionOrder.length === SECTION_KEYS.length
+    ? data.sectionOrder as SectionKey[]
+    : [...SECTION_KEYS];
+    
+  const [newSkill, setNewSkill] = useState("");
+  const [designSettings, setDesignSettings] = useState<DesignSettings>({
+    template: "modern",
+    fontSize: 11,
+    lineHeight: 1.6,
+    margins: 20,
+    accentColor: "#2563EB",
+    fontFamily: "Inter"
+  });
+  
+  const [resumeSettings, setResumeSettings] = useState<ResumeSettings>({
+    isPublic: false,
+    allowComments: false,
+    showContactInfo: true,
+    atsOptimized: true,
+    fileName: "Resume",
+    includeContactInfo: true
+  });
+
+  // AI Provider selection
+  const [aiProvider, setAiProvider] = useState<'openai' | 'gemini'>('openai');
+  const [suggestionLoading, setSuggestionLoading] = useState(false);
+  // Summary length and tone selection
+  const [summaryLength, setSummaryLength] = useState<'short' | 'medium' | 'long'>('medium');
+  const [summaryTone, setSummaryTone] = useState<'formal' | 'confident' | 'friendly'>('formal');
+
+  // Drag-and-drop section ordering
+  function handleDragEnd(result: any) {
+    if (!result.destination) return;
+    const items = Array.from(sectionOrder);
+    const [removed] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, removed);
+    // Update sectionOrder in ResumeData via onChange
+    onChange({
+      ...data,
+      sectionOrder: items
+    });
+  }
+
+  function toggleSection(section: SectionKey) {
+    setCollapsedSections(prev => {
+      const set = new Set(prev);
+      if (set.has(section)) {
+        set.delete(section); // expand
+      } else {
+        set.add(section); // collapse
+      }
+      return set;
+    });
+  }
+
+  // --- HANDLERS: all standard update/add/remove handlers ---
+  function updatePersonalInfo(field: string, value: string) {
+    onChange({
+      ...data,
+      personalInfo: {
+        ...data.personalInfo,
+        [field]: value
+      }
+    });
+  }
+
+  function addExperience() {
+    onChange({
+      ...data,
+      experience: [
+        ...data.experience,
+        { title: "", company: "", location: "", startDate: "", endDate: "", current: false, bullets: [""] }
+      ]
+    });
+  }
+
+  function removeExperience(index: number) {
+    const newExperience = [...data.experience];
+    newExperience.splice(index, 1);
+    onChange({ ...data, experience: newExperience });
+  }
+
+  function updateExperience(index: number, field: string, value: string | boolean) {
+    const newExperience = [...data.experience];
+    newExperience[index] = { ...newExperience[index], [field]: value };
+    onChange({ ...data, experience: newExperience });
+  }
+
+  function addBulletPoint(expIndex: number) {
+    const newExperience = [...data.experience];
+    newExperience[expIndex].bullets.push("");
+    onChange({ ...data, experience: newExperience });
+  }
+
+  function removeBulletPoint(expIndex: number, bulletIndex: number) {
+    const newExperience = [...data.experience];
+    newExperience[expIndex].bullets.splice(bulletIndex, 1);
+    onChange({ ...data, experience: newExperience });
+  }
+
+  function updateBulletPoint(expIndex: number, bulletIndex: number, value: string) {
+    const newExperience = [...data.experience];
+    newExperience[expIndex].bullets[bulletIndex] = value;
+    onChange({ ...data, experience: newExperience });
+  }
+
+  function addSkill(type: "technical" | "soft") {
+    if (!newSkill.trim()) return;
+    const skillList = [...data.skills[type], newSkill.trim()];
+    onChange({
+      ...data,
+      skills: {
+        ...data.skills,
+        [type]: skillList
+      }
+    });
+    setNewSkill("");
+  }
+
+  function removeSkill(type: "technical" | "soft", index: number) {
+    const skillList = [...data.skills[type]];
+    skillList.splice(index, 1);
+    onChange({
+      ...data,
+      skills: {
+        ...data.skills,
+        [type]: skillList
+      }
+    });
+  }
+
+  function addEducation() {
+    onChange({
+      ...data,
+      education: [
+        ...data.education,
+        { institution: "", degree: "", field: "", startDate: "", endDate: "", gpa: "" }
+      ]
+    });
+  }
+
+  function removeEducation(index: number) {
+    const newEducation = [...data.education];
+    newEducation.splice(index, 1);
+    onChange({ ...data, education: newEducation });
+  }
+
+  function updateEducation(index: number, field: string, value: string) {
+    const newEducation = [...data.education];
+    newEducation[index] = { ...newEducation[index], [field]: value };
+    onChange({ ...data, education: newEducation });
+  }
+
+  function addProject() {
+    onChange({
+      ...data,
+      projects: [
+        ...data.projects,
+        { name: "", description: "", technologies: [], url: "" }
+      ]
+    });
+  }
+
+  function removeProject(index: number) {
+    const newProjects = [...data.projects];
+    newProjects.splice(index, 1);
+    onChange({ ...data, projects: newProjects });
+  }
+
+  function updateProject(index: number, field: string, value: string) {
+    const newProjects = [...data.projects];
+    newProjects[index] = { ...newProjects[index], [field]: value };
+    onChange({ ...data, projects: newProjects });
+  }
+
+  function addProjectTechnology(projectIndex: number, tech: string) {
+    const newProjects = [...data.projects];
+    newProjects[projectIndex].technologies.push(tech.trim());
+    onChange({ ...data, projects: newProjects });
+  }
+
+  function removeProjectTechnology(projectIndex: number, techIndex: number) {
+    const newProjects = [...data.projects];
+    newProjects[projectIndex].technologies.splice(techIndex, 1);
+    onChange({ ...data, projects: newProjects });
+  }
+
   // --- CERTIFICATIONS HANDLERS ---
   function addCertification() {
     onChange({
@@ -84,162 +281,45 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
     newCerts[index] = { ...newCerts[index], [field]: value };
     onChange({ ...data, certifications: newCerts });
   }
-// ...existing code...
-  const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<"content" | "design" | "settings">("content");
-  const [collapsedSections, setCollapsedSections] = useState<Set<SectionKey>>(new Set());
-  // Use sectionOrder from data, fallback to default if missing
-  const sectionOrder = data.sectionOrder && data.sectionOrder.length === SECTION_KEYS.length
-    ? data.sectionOrder as SectionKey[]
-    : [...SECTION_KEYS];
-  const [newSkill, setNewSkill] = useState("");
-  const [designSettings, setDesignSettings] = useState<DesignSettings>({
-    template: "modern",
-    fontSize: 11,
-    lineHeight: 1.6,
-    margins: 20,
-    accentColor: "#2563EB",
-    fontFamily: "Inter"
-  });
-  const [resumeSettings, setResumeSettings] = useState<ResumeSettings>({
-    isPublic: false,
-    allowComments: false,
-    showContactInfo: true,
-    atsOptimized: true
-  });
 
-  // Drag-and-drop section ordering
-  function handleDragEnd(result: any) {
-    if (!result.destination) return;
-    const items = Array.from(sectionOrder);
-    const [removed] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, removed);
-    // Update sectionOrder in ResumeData via onChange
-    onChange({
-      ...data,
-      sectionOrder: items
-    });
-  }
-
-  function toggleSection(section: SectionKey) {
-    setCollapsedSections(prev => {
-      const set = new Set(prev);
-      set.has(section) ? set.delete(section) : set.add(section);
-      return set;
-    });
-  }
-
-  // --- HANDLERS: all standard update/add/remove handlers ---
-  function updatePersonalInfo(field: string, value: string) {
-    onChange({
-      ...data,
-      personalInfo: {
-        ...data.personalInfo,
-        [field]: value
+  // Suggestion handler
+  async function handleAISuggestions() {
+    setSuggestionLoading(true);
+    try {
+      let response;
+      if (aiProvider === 'openai') {
+        response = await apiRequest('POST', '/api/ai/generate-summary', {
+          experience: data.experience,
+          skills: [...data.skills.technical, ...data.skills.soft],
+          title: data.personalInfo.title,
+        });
+        const result = await response.json();
+        if (result.summary && result.summary.trim()) {
+          onChange({ ...data, summary: result.summary });
+          toast({ title: 'Success', description: 'OpenAI summary generated!' });
+        } else {
+          toast({ title: 'Error', description: 'No summary returned from OpenAI', variant: 'destructive' });
+        }
+      } else {
+        response = await apiRequest('POST', '/api/ai/gemini/suggestions', {
+          profile: data.personalInfo,
+          resumeDraft: data.summary,
+          length: summaryLength,
+          tone: summaryTone,
+        });
+        const result = await response.json();
+        if (result.summary && result.summary.trim()) {
+          onChange({ ...data, summary: result.summary });
+          toast({ title: 'Success', description: 'Gemini summary generated!' });
+        } else {
+          toast({ title: 'Error', description: 'No summary returned from Gemini', variant: 'destructive' });
+        }
       }
-    });
-  }
-  function addExperience() {
-    onChange({
-      ...data,
-      experience: [
-        ...data.experience,
-        { title: "", company: "", location: "", startDate: "", endDate: "", current: false, bullets: [""] }
-      ]
-    });
-  }
-
-  function removeExperience(index: number) {
-    const newExperience = [...data.experience];
-    newExperience.splice(index, 1);
-    onChange({ ...data, experience: newExperience });
-  }
-  function updateExperience(index: number, field: string, value: string | boolean) {
-    const newExperience = [...data.experience];
-    newExperience[index] = { ...newExperience[index], [field]: value };
-    onChange({ ...data, experience: newExperience });
-  }
-  function addBulletPoint(expIndex: number) {
-    const newExperience = [...data.experience];
-    newExperience[expIndex].bullets.push("");
-    onChange({ ...data, experience: newExperience });
-  }
-  function removeBulletPoint(expIndex: number, bulletIndex: number) {
-    const newExperience = [...data.experience];
-    newExperience[expIndex].bullets.splice(bulletIndex, 1);
-    onChange({ ...data, experience: newExperience });
-  }
-  function updateBulletPoint(expIndex: number, bulletIndex: number, value: string) {
-    const newExperience = [...data.experience];
-    newExperience[expIndex].bullets[bulletIndex] = value;
-    onChange({ ...data, experience: newExperience });
-  }
-  function addSkill(type: "technical" | "soft") {
-    if (!newSkill.trim()) return;
-    const skillList = [...data.skills[type], newSkill.trim()];
-    onChange({
-      ...data,
-      skills: {
-        ...data.skills,
-        [type]: skillList
-      }
-    });
-    setNewSkill("");
-  }
-  function removeSkill(type: "technical" | "soft", index: number) {
-    const skillList = [...data.skills[type]];
-    skillList.splice(index, 1);
-    onChange({
-      ...data,
-      skills: {
-        ...data.skills,
-        [type]: skillList
-      }
-    });
-  }
-  function addEducation() {
-    onChange({
-      ...data,
-      education: [
-        ...data.education,
-        { institution: "", degree: "", field: "", startDate: "", endDate: "", gpa: "" }
-      ]
-    });
-  }
-
-  function removeEducation(index: number) {
-    const newEducation = [...data.education];
-    newEducation.splice(index, 1);
-    onChange({ ...data, education: newEducation });
-  }
-  function updateEducation(index: number, field: string, value: string) {
-    const newEducation = [...data.education];
-    newEducation[index] = { ...newEducation[index], [field]: value };
-    onChange({ ...data, education: newEducation });
-  }
-  function addProject() {
-    onChange({
-      ...data,
-      projects: [
-        ...data.projects,
-        { name: "", description: "", technologies: [], url: "" }
-      ]
-    });
-  }
-  function updateProject(index: number, field: string, value: string) {
-    const newProjects = [...data.projects];
-    newProjects[index] = { ...newProjects[index], [field]: value };
-    onChange({ ...data, projects: newProjects });
-  }
-  function addProjectTechnology(projectIndex: number, tech: string) {
-    const newProjects = [...data.projects];
-    newProjects[projectIndex].technologies.push(tech.trim());
-    onChange({ ...data, projects: newProjects });
-  }
-  function removeProjectTechnology(projectIndex: number, techIndex: number) {
-    const newProjects = [...data.projects];
-    newProjects[projectIndex].technologies.splice(techIndex, 1);
-    onChange({ ...data, projects: newProjects });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message || 'AI suggestion failed', variant: 'destructive' });
+    } finally {
+      setSuggestionLoading(false);
+    }
   }
 
   // AI summary
@@ -285,68 +365,64 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="firstName">First Name</Label>
+                    <Label>First Name</Label>
                     <Input
-                      id="firstName"
                       value={data.personalInfo.firstName}
                       onChange={(e) => updatePersonalInfo("firstName", e.target.value)}
                       placeholder="John"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="lastName">Last Name</Label>
+                    <Label>Last Name</Label>
                     <Input
-                      id="lastName"
                       value={data.personalInfo.lastName}
                       onChange={(e) => updatePersonalInfo("lastName", e.target.value)}
                       placeholder="Doe"
                     />
                   </div>
                 </div>
-                <div>
-                  <Label htmlFor="title">Professional Title</Label>
-                  <Input
-                    id="title"
-                    value={data.personalInfo.title}
-                    onChange={(e) => updatePersonalInfo("title", e.target.value)}
-                    placeholder="Software Engineer"
-                  />
-                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="email">Email</Label>
+                    <Label>Professional Title</Label>
                     <Input
-                      id="email"
+                      value={data.personalInfo.title}
+                      onChange={(e) => updatePersonalInfo("title", e.target.value)}
+                      placeholder="Software Engineer"
+                    />
+                  </div>
+                  <div>
+                    <Label>Email</Label>
+                    <Input
                       type="email"
                       value={data.personalInfo.email}
                       onChange={(e) => updatePersonalInfo("email", e.target.value)}
                       placeholder="john@example.com"
                     />
                   </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="phone">Phone</Label>
+                    <Label>Phone</Label>
                     <Input
-                      id="phone"
+                      type="tel"
                       value={data.personalInfo.phone}
                       onChange={(e) => updatePersonalInfo("phone", e.target.value)}
                       placeholder="+1 (555) 123-4567"
                     />
                   </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="location">Location</Label>
+                    <Label>Location</Label>
                     <Input
-                      id="location"
                       value={data.personalInfo.location}
                       onChange={(e) => updatePersonalInfo("location", e.target.value)}
                       placeholder="San Francisco, CA"
                     />
                   </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="website">Website</Label>
+                    <Label>Website/Portfolio</Label>
                     <Input
-                      id="website"
                       value={data.personalInfo.website}
                       onChange={(e) => updatePersonalInfo("website", e.target.value)}
                       placeholder="https://johndoe.com"
@@ -357,6 +433,7 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
             )}
           </Card>
         );
+
       case "summary":
         return (
           <Card>
@@ -369,31 +446,47 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
                 <h3 className="font-semibold text-slate-900">Professional Summary</h3>
               </div>
               <div className="flex items-center space-x-2">
+                <Select
+                  value={aiProvider}
+                  onValueChange={(value) => setAiProvider(value as 'openai' | 'gemini')}
+                >
+                  <SelectTrigger className="w-28 h-8 text-xs">
+                    <SelectValue placeholder="AI Provider" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="openai">OpenAI</SelectItem>
+                    <SelectItem value="gemini">Gemini</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Button
                   size="sm"
-                  onClick={e => { e.stopPropagation(); generateSummaryMutation.mutate(); }}
-                  disabled={generateSummaryMutation.isPending}
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAISuggestions();
+                  }}
+                  disabled={suggestionLoading}
                   className="px-3 py-1 text-xs"
                 >
                   <Sparkles className="w-3 h-3 mr-1" />
-                  {generateSummaryMutation.isPending ? "Generating..." : "AI Generate"}
+                  {suggestionLoading ? "Generating..." : "AI Generate"}
                 </Button>
                 <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${collapsedSections.has("summary") ? "" : "rotate-180"}`} />
               </div>
             </CardHeader>
             {!collapsedSections.has("summary") && (
               <CardContent>
-                <Suspense fallback={<div>Loading editor...</div>}>
-                  <RichTextEditor
-                    value={data.summary}
-                    onChange={(value: string) => onChange({ ...data, summary: value })}
-                    placeholder="Dynamic software engineer with a passion for..."
-                  />
-                </Suspense>
+                <Textarea
+                  value={data.summary}
+                  onChange={(e) => onChange({ ...data, summary: e.target.value })}
+                  placeholder="Write a compelling professional summary that highlights your key achievements and skills..."
+                  rows={4}
+                />
               </CardContent>
             )}
           </Card>
         );
+
       case "experience":
         return (
           <Card>
@@ -405,23 +498,20 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
                 <GripVertical className="w-4 h-4 text-slate-400" />
                 <h3 className="font-semibold text-slate-900">Work Experience</h3>
               </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => { e.stopPropagation(); addExperience(); }}
-                  className="px-3 py-1 text-xs"
-                >
-                  <Plus className="w-3 h-3 mr-1" />
-                  Add Experience
-                </Button>
-                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${collapsedSections.has("experience") ? "" : "rotate-180"}`} />
-              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => { e.stopPropagation(); addExperience(); }}
+                className="px-3 py-1 text-xs"
+              >
+                <Plus className="w-3 h-3 mr-1" />
+                Add Experience
+              </Button>
             </CardHeader>
             {!collapsedSections.has("experience") && (
-              <CardContent>
+              <CardContent className="space-y-4">
                 {data.experience.map((exp, expIndex) => (
-                  <div key={expIndex} className="border border-slate-200 rounded-md p-4 bg-slate-50 mb-2 relative">
+                  <div key={expIndex} className="border border-slate-200 rounded-md p-4 bg-slate-50 relative">
                     <Button
                       size="icon"
                       variant="destructive"
@@ -431,25 +521,25 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
                     >
                       <X className="w-4 h-4" />
                     </Button>
-                    <div className="grid grid-cols-2 gap-4 mb-2">
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <Label>Job Title</Label>
+                        <Input
+                          value={exp.title}
+                          onChange={(e) => updateExperience(expIndex, "title", e.target.value)}
+                          placeholder="Software Engineer"
+                        />
+                      </div>
                       <div>
                         <Label>Company</Label>
                         <Input
                           value={exp.company}
                           onChange={(e) => updateExperience(expIndex, "company", e.target.value)}
-                          placeholder="Acme Corporation"
-                        />
-                      </div>
-                      <div>
-                        <Label>Title</Label>
-                        <Input
-                          value={exp.title}
-                          onChange={(e) => updateExperience(expIndex, "title", e.target.value)}
-                          placeholder="Frontend Developer"
+                          placeholder="Google"
                         />
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-4 mb-2">
+                    <div className="grid grid-cols-3 gap-4 mb-4">
                       <div>
                         <Label>Location</Label>
                         <Input
@@ -465,6 +555,7 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
                             type="month"
                             value={exp.startDate}
                             onChange={(e) => updateExperience(expIndex, "startDate", e.target.value)}
+                            className={exp.startDate ? "" : "text-slate-400"}
                           />
                           {!exp.startDate && (
                             <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">Start date</span>
@@ -479,46 +570,53 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
                             value={exp.endDate}
                             onChange={(e) => updateExperience(expIndex, "endDate", e.target.value)}
                             disabled={exp.current}
+                            className={exp.endDate || exp.current ? "" : "text-slate-400"}
                           />
                           {!exp.endDate && !exp.current && (
                             <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">End date</span>
                           )}
-                          {exp.current && (
-                            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">Present</span>
-                          )}
                         </div>
                       </div>
                     </div>
+                    <div className="flex items-center space-x-2 mb-4">
+                      <input
+                        type="checkbox"
+                        id={`current-${expIndex}`}
+                        checked={exp.current}
+                        onChange={(e) => updateExperience(expIndex, "current", e.target.checked)}
+                        className="rounded"
+                        title="Currently work here"
+                      />
+                      <Label htmlFor={`current-${expIndex}`}>I currently work here</Label>
+                    </div>
                     <div>
-                      <Label>Key Achievements</Label>
-                      <div className="space-y-2">
+                      <Label>Key Achievements & Responsibilities</Label>
+                      <div className="space-y-2 mt-2">
                         {exp.bullets.map((bullet, bulletIndex) => (
-                          <div key={bulletIndex} className="flex items-start space-x-2">
-                            <span className="text-slate-400 mt-2">•</span>
+                          <div key={bulletIndex} className="flex items-center space-x-2">
                             <Input
                               value={bullet}
                               onChange={(e) => updateBulletPoint(expIndex, bulletIndex, e.target.value)}
-                              placeholder="Led development of key features that increased user engagement by 25%"
-                              className="flex-1"
+                              placeholder="• Developed and maintained web applications using React and Node.js"
                             />
                             <Button
-                              size="sm"
-                              variant="ghost"
+                              size="icon"
+                              variant="outline"
                               onClick={() => removeBulletPoint(expIndex, bulletIndex)}
-                              className="p-1"
+                              disabled={exp.bullets.length === 1}
                             >
-                              <X className="w-3 h-3" />
+                              <X className="w-4 h-4" />
                             </Button>
                           </div>
                         ))}
                         <Button
-                          variant="ghost"
                           size="sm"
+                          variant="outline"
                           onClick={() => addBulletPoint(expIndex)}
-                          className="text-primary hover:text-primary/80"
+                          className="mt-2"
                         >
                           <Plus className="w-3 h-3 mr-1" />
-                          Add bullet point
+                          Add Bullet Point
                         </Button>
                       </div>
                     </div>
@@ -529,7 +627,7 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
                     <p className="mb-4">No work experience added yet</p>
                     <Button onClick={addExperience} variant="outline">
                       <Plus className="w-4 h-4 mr-2" />
-                      Add Your First Position
+                      Add Your First Job
                     </Button>
                   </div>
                 )}
@@ -537,6 +635,7 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
             )}
           </Card>
         );
+
       case "skills":
         return (
           <Card>
@@ -593,9 +692,8 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
                           onClick={() => removeSkill("soft", index)}
                           className="ml-2 p-0 h-auto text-xs"
                         >
-                          <X className="w-3 h-3" />
-                        </Button>
-                      </Badge>
+                          <X className="w-3 h-3" /> </Button>
+                          </Badge>
                     ))}
                   </div>
                   <div className="flex space-x-2">
@@ -614,6 +712,7 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
             )}
           </Card>
         );
+
       case "education":
         return (
           <Card>
@@ -682,10 +781,9 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
                             type="month"
                             value={edu.startDate}
                             onChange={(e) => updateEducation(eduIndex, "startDate", e.target.value)}
-                            className={edu.startDate ? "" : "text-slate-400"}
                           />
                           {!edu.startDate && (
-                            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">Start date</span>
+                            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">Start</span>
                           )}
                         </div>
                       </div>
@@ -696,10 +794,9 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
                             type="month"
                             value={edu.endDate}
                             onChange={(e) => updateEducation(eduIndex, "endDate", e.target.value)}
-                            className={edu.endDate ? "" : "text-slate-400"}
                           />
                           {!edu.endDate && (
-                            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">End date</span>
+                            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">End</span>
                           )}
                         </div>
                       </div>
@@ -727,6 +824,7 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
             )}
           </Card>
         );
+
       case "projects":
         return (
           <Card>
@@ -751,7 +849,16 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
             {!collapsedSections.has("projects") && (
               <CardContent className="space-y-4">
                 {data.projects.map((project, projectIndex) => (
-                  <div key={projectIndex} className="border border-slate-200 rounded-md p-4 bg-slate-50">
+                  <div key={projectIndex} className="border border-slate-200 rounded-md p-4 bg-slate-50 relative">
+                    <Button
+                      size="icon"
+                      variant="destructive"
+                      className="absolute top-2 right-2"
+                      onClick={() => removeProject(projectIndex)}
+                      title="Remove Project"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
                     <div className="grid grid-cols-2 gap-4 mb-4">
                       <div>
                         <Label>Project Name</Label>
@@ -824,6 +931,7 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
             )}
           </Card>
         );
+
       case "certifications":
         return (
           <Card>
@@ -869,33 +977,24 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
                       </div>
                       <div>
                         <Label>Issuer</Label>
-                        <Input
-                          value={cert.issuer}
-                          onChange={e => updateCertification(certIndex, "issuer", e.target.value)}
-                          placeholder="Amazon Web Services"
-                        />
+                        <Input value={cert.issuer} onChange={e => updateCertification(certIndex, "issuer", e.target.value)} placeholder="Amazon" />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label>Date</Label>
-                        <div className="relative">
-                          <Input
-                            type="month"
-                            value={cert.date}
-                            onChange={e => updateCertification(certIndex, "date", e.target.value)}
-                          />
-                          {!cert.date && (
-                            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">Date</span>
-                          )}
-                        </div>
+                        <Label>Date Obtained</Label>
+                        <Input
+                          type="month"
+                          value={cert.date}
+                          onChange={e => updateCertification(certIndex, "date", e.target.value)}
+                        />
                       </div>
                       <div>
-                        <Label>URL (Optional)</Label>
+                        <Label>Credential URL (Optional)</Label>
                         <Input
                           value={cert.url}
                           onChange={e => updateCertification(certIndex, "url", e.target.value)}
-                          placeholder="https://example.com/cert"
+                          placeholder="https://aws.amazon.com/verification"
                         />
                       </div>
                     </div>
@@ -914,6 +1013,7 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
             )}
           </Card>
         );
+
       default:
         return null;
     }
@@ -921,43 +1021,119 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
 
   // --- MAIN RENDER ---
   return (
-    <div>
-      {/* Tabs */}
-      <div className="flex space-x-1 bg-slate-100 rounded-lg p-1 mb-6">
-        <button
-          className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${activeTab === "content" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
-          onClick={() => setActiveTab("content")}
-        >Content</button>
-        <button
-          className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${activeTab === "design" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
-          onClick={() => setActiveTab("design")}
-        >Design</button>
-        <button
-          className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${activeTab === "settings" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
-          onClick={() => setActiveTab("settings")}
-        >Settings</button>
+    <div className="w-full max-w-4xl mx-auto p-6 space-y-6">
+      {/* Header with tabs */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-slate-900">Resume Editor</h2>
+        <div className="flex items-center space-x-2">
+          {onExportPdf && (
+            <Button
+              onClick={onExportPdf}
+              disabled={exportPdfPending}
+              variant="outline"
+              size="sm"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              {exportPdfPending ? "Exporting..." : "Export PDF"}
+            </Button>
+          )}
+        </div>
       </div>
 
+      {/* Tab Navigation */}
+      <div className="flex space-x-1 bg-slate-100 p-1 rounded-lg">
+        <button
+          onClick={() => setActiveTab("content")}
+          className={`flex-1 flex items-center justify-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+            activeTab === "content"
+              ? "bg-white text-slate-900 shadow-sm"
+              : "text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          <FileText className="w-4 h-4 mr-2" />
+          Content
+        </button>
+        <button
+          onClick={() => setActiveTab("design")}
+          className={`flex-1 flex items-center justify-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+            activeTab === "design"
+              ? "bg-white text-slate-900 shadow-sm"
+              : "text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          <Palette className="w-4 h-4 mr-2" />
+          Design
+        </button>
+        <button
+          onClick={() => setActiveTab("settings")}
+          className={`flex-1 flex items-center justify-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+            activeTab === "settings"
+              ? "bg-white text-slate-900 shadow-sm"
+              : "text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          <Settings className="w-4 h-4 mr-2" />
+          Settings
+        </button>
+      </div>
+
+      {/* ATS Score Display */}
+      {atsScore && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-blue-900">ATS Compatibility Score</h3>
+              <div className="flex items-center space-x-2">
+                <div className="text-2xl font-bold text-blue-600">{atsScore.score}%</div>
+                <div className={`w-3 h-3 rounded-full ${atsScore.score >= 80 ? 'bg-green-500' : atsScore.score >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`} />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {atsScore.feedback.length > 0 && (
+              <div className="mb-4">
+                <h4 className="font-medium text-blue-900 mb-2">Feedback:</h4>
+                <ul className="list-disc list-inside space-y-1 text-sm text-blue-800">
+                  {atsScore.feedback.map((item, index) => (
+                    <li key={index}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {atsScore.suggestions.length > 0 && (
+              <div>
+                <h4 className="font-medium text-blue-900 mb-2">Suggestions:</h4>
+                <ul className="list-disc list-inside space-y-1 text-sm text-blue-800">
+                  {atsScore.suggestions.map((item, index) => (
+                    <li key={index}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Tab Content */}
       {activeTab === "content" && (
         <DragDropContext onDragEnd={handleDragEnd}>
-          <Droppable droppableId="resumeSections">
-            {(droppableProvided: any) => (
-              <div ref={droppableProvided.innerRef} {...droppableProvided.droppableProps}>
-                {sectionOrder.map((key, idx) => (
-                  <Draggable key={key} draggableId={key} index={idx}>
-                    {(draggableProvided: any) => (
+          <Droppable droppableId="sections">
+            {(provided: any) => (
+              <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4">
+                {sectionOrder.map((sectionKey, index) => (
+                  <Draggable key={sectionKey} draggableId={sectionKey} index={index}>
+                    {(provided: any) => (
                       <div
-                        ref={draggableProvided.innerRef}
-                        {...draggableProvided.draggableProps}
-                        {...draggableProvided.dragHandleProps}
-                        className="mb-4"
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        {...provided.dragHandleProps}
                       >
-                        {renderSection(key)}
+                        {renderSection(sectionKey)}
                       </div>
                     )}
                   </Draggable>
                 ))}
-                {droppableProvided.placeholder}
+                {provided.placeholder}
               </div>
             )}
           </Droppable>
@@ -965,291 +1141,182 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
       )}
 
       {activeTab === "design" && (
-  <div className="space-y-6">
-    {/* Template Selector */}
-    <Card>
-      <CardHeader>
-        <h3 className="font-semibold flex items-center">
-          <FileText className="w-4 h-4 mr-2" /> Template
-        </h3>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 gap-3">
-          {["modern", "classic", "minimal", "creative"].map((template) => (
-            <div
-              key={template}
-              className={`border-2 rounded-lg p-3 cursor-pointer transition-colors ${
-                designSettings.template === template
-                  ? "border-primary bg-primary/5"
-                  : "border-slate-200 hover:border-slate-300"
-              }`}
-              onClick={() => setDesignSettings({ ...designSettings, template })}
-            >
-              <div className="text-center">
-                <div className="w-full h-20 bg-slate-100 rounded mb-2 flex items-center justify-center">
-                  <span className="text-xs font-medium capitalize">{template}</span>
-                </div>
-                <span className="text-sm capitalize">{template}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <h3 className="font-semibold text-slate-900">Template Selection</h3>
+            </CardHeader>
+            <CardContent>
+              <Select
+                value={designSettings.template}
+                onValueChange={(value) => setDesignSettings(prev => ({ ...prev, template: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a template" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="modern">Modern</SelectItem>
+                  <SelectItem value="elegant">Elegant</SelectItem>
+                  <SelectItem value="bold">Bold</SelectItem>
+                  <SelectItem value="two-column">Two Column</SelectItem>
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
 
-    {/* Typography Settings */}
-    <Card>
-      <CardHeader>
-        <h3 className="font-semibold flex items-center">
-          <Type className="w-4 h-4 mr-2" /> Typography
-        </h3>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <Label htmlFor="fontFamily">Font Family</Label>
-          <Select
-            value={designSettings.fontFamily}
-            onValueChange={(value) => setDesignSettings({...designSettings, fontFamily: value})}
-          >
-            <SelectTrigger><SelectValue/></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Inter">Inter</SelectItem>
-              <SelectItem value="Roboto">Roboto</SelectItem>
-              <SelectItem value="Open Sans">Open Sans</SelectItem>
-              <SelectItem value="Source Sans Pro">Source Sans Pro</SelectItem>
-              <SelectItem value="Times New Roman">Times New Roman</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label>Font Size: {designSettings.fontSize}px</Label>
-          <Slider
-            value={[designSettings.fontSize]}
-            onValueChange={([value]) => setDesignSettings({ ...designSettings, fontSize: value })}
-            min={9}
-            max={16}
-            step={0.5}
-            className="mt-2"
-          />
-        </div>
-        <div>
-          <Label>Line Height: {designSettings.lineHeight}</Label>
-          <Slider
-            value={[designSettings.lineHeight]}
-            onValueChange={([value]) => setDesignSettings({ ...designSettings, lineHeight: value })}
-            min={1.2}
-            max={2.0}
-            step={0.1}
-            className="mt-2"
-          />
-        </div>
-      </CardContent>
-    </Card>
-
-    {/* Color Picker */}
-    <Card>
-      <CardHeader>
-        <h3 className="font-semibold flex items-center">
-          <Palette className="w-4 h-4 mr-2" /> Colors
-        </h3>
-      </CardHeader>
-      <CardContent>
-        <div>
-          <Label htmlFor="accentColor">Accent Color</Label>
-          <div className="flex items-center space-x-3 mt-2">
-            <Input
-              type="color"
-              value={designSettings.accentColor}
-              onChange={(e) => setDesignSettings({ ...designSettings, accentColor: e.target.value })}
-              className="w-12 h-10"
-            />
-            <Input
-              value={designSettings.accentColor}
-              onChange={(e) => setDesignSettings({ ...designSettings, accentColor: e.target.value })}
-              placeholder="#2563EB"
-            />
-          </div>
-          <div className="grid grid-cols-6 gap-2 mt-3">
-            {["#2563EB","#DC2626","#059669","#7C3AED","#EA580C","#0891B2"].map((color) => (
-              <button
-                key={color}
-                className="w-8 h-8 rounded border-2 border-slate-200 color-swatch"
-                data-color={color}
-                onClick={() => setDesignSettings({ ...designSettings, accentColor: color })}
-                title={`Set accent color to ${color}`}
-                aria-label={`Set accent color to ${color}`}
-              />
-            ))}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-
-    {/* Margin Settings */}
-    <Card>
-      <CardHeader>
-        <h3 className="font-semibold">Layout</h3>
-      </CardHeader>
-      <CardContent>
-        <div>
-          <Label>Margins: {designSettings.margins}px</Label>
-          <Slider
-            value={[designSettings.margins]}
-            onValueChange={([value]) => setDesignSettings({ ...designSettings, margins: value })}
-            min={10}
-            max={40}
-            step={5}
-            className="mt-2"
-          />
-        </div>
-      </CardContent>
-    </Card>
-  </div>
-)}
-
-{activeTab === "settings" && (
-  <div className="space-y-6">
-    <Card>
-      <CardHeader>
-        <h3 className="font-semibold flex items-center">
-          <Settings className="w-4 h-4 mr-2" /> Privacy & Sharing
-        </h3>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <Label htmlFor="isPublic">Make resume public</Label>
-            <p className="text-sm text-slate-600">Allow others to view your resume</p>
-          </div>
-          <Switch
-            id="isPublic"
-            checked={resumeSettings.isPublic}
-            onCheckedChange={(checked) => setResumeSettings({ ...resumeSettings, isPublic: checked })}
-          />
-        </div>
-        <div className="flex items-center justify-between">
-          <div>
-            <Label htmlFor="allowComments">Allow comments</Label>
-            <p className="text-sm text-slate-600">Let others provide feedback</p>
-          </div>
-          <Switch
-            id="allowComments"
-            checked={resumeSettings.allowComments}
-            onCheckedChange={(checked) => setResumeSettings({ ...resumeSettings, allowComments: checked })}
-          />
-        </div>
-        <div className="flex items-center justify-between">
-          <div>
-            <Label htmlFor="showContactInfo">Show contact information</Label>
-            <p className="text-sm text-slate-600">Display email and phone on public resume</p>
-          </div>
-          <Switch
-            id="showContactInfo"
-            checked={resumeSettings.showContactInfo}
-            onCheckedChange={(checked) => setResumeSettings({ ...resumeSettings, showContactInfo: checked })}
-          />
-        </div>
-      </CardContent>
-    </Card>
-    <Card>
-      <CardHeader>
-        <h3 className="font-semibold flex items-center">
-          <Check className="w-4 h-4 mr-2" /> ATS Optimization
-        </h3>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <Label htmlFor="atsOptimized">ATS-friendly formatting</Label>
-            <p className="text-sm text-slate-600">Optimize layout for Applicant Tracking Systems</p>
-          </div>
-          <Switch
-            id="atsOptimized"
-            checked={resumeSettings.atsOptimized}
-            onCheckedChange={(checked) => setResumeSettings({ ...resumeSettings, atsOptimized: checked })}
-          />
-        </div>
-        {atsScore && (
-          <div className="bg-slate-50 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-3">
-              <span className="font-medium">Current ATS Score</span>
-              <span className="text-2xl font-bold text-accent">
-                {atsScore.score}/100
-              </span>
-            </div>
-            {atsScore.feedback.length > 0 && (
-              <div className="mb-3">
-                <h4 className="font-medium text-sm text-slate-700 mb-2">What's working well:</h4>
-                <ul className="space-y-1">
-                  {atsScore.feedback.slice(0, 3).map((item, index) => (
-                    <li key={index} className="text-sm text-slate-600 flex items-start">
-                      <Check className="w-3 h-3 mr-2 mt-0.5 text-green-600" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {atsScore.suggestions.length > 0 && (
+          <Card>
+            <CardHeader>
+              <h3 className="font-semibold text-slate-900">Typography</h3>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div>
-                <h4 className="font-medium text-sm text-slate-700 mb-2">Suggestions for improvement:</h4>
-                <ul className="space-y-1">
-                  {atsScore.suggestions.slice(0, 3).map((item, index) => (
-                    <li key={index} className="text-sm text-slate-600 flex items-start">
-                      <span className="w-3 h-3 mr-2 mt-0.5 text-orange-500">⚡</span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
+                <Label>Font Family</Label>
+                <Select
+                  value={designSettings.fontFamily}
+                  onValueChange={(value) => setDesignSettings(prev => ({ ...prev, fontFamily: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Inter">Inter</SelectItem>
+                    <SelectItem value="Roboto">Roboto</SelectItem>
+                    <SelectItem value="Open Sans">Open Sans</SelectItem>
+                    <SelectItem value="Lato">Lato</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-    <Card>
-      <CardHeader>
-        <h3 className="font-semibold flex items-center">
-          <Download className="w-4 h-4 mr-2" /> Export Options
-        </h3>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <Button
-          variant="outline"
-          className="w-full justify-start"
-          onClick={onExportPdf}
-          disabled={exportPdfPending}
-        >
-          <Download className="w-4 h-4 mr-2" />
-          {exportPdfPending ? "Exporting..." : "Download as PDF"}
-        </Button>
-        <Button variant="outline" className="w-full justify-start">
-          <Download className="w-4 h-4 mr-2" />
-          Download as Word Doc
-        </Button>
-        <Button variant="outline" className="w-full justify-start">
-          <Eye className="w-4 h-4 mr-2" />
-          Preview in new tab
-        </Button>
-      </CardContent>
-    </Card>
-    <Card className="border-red-200">
-      <CardHeader>
-        <h3 className="font-semibold text-red-600">Danger Zone</h3>
-      </CardHeader>
-      <CardContent>
-        <Button variant="destructive" className="w-full">
-          Delete Resume
-        </Button>
-        <p className="text-sm text-slate-600 mt-2">
-          This action cannot be undone. This will permanently delete your resume.
-        </p>
-      </CardContent>
-    </Card>
-  </div>
-)}
+              <div>
+                <Label>Font Size: {designSettings.fontSize}px</Label>
+                <Slider
+                  value={[designSettings.fontSize]}
+                  onValueChange={([value]) => setDesignSettings(prev => ({ ...prev, fontSize: value }))}
+                  min={9}
+                  max={14}
+                  step={0.5}
+                  className="mt-2"
+                />
+              </div>
+              <div>
+                <Label>Line Height: {designSettings.lineHeight}</Label>
+                <Slider
+                  value={[designSettings.lineHeight]}
+                  onValueChange={([value]) => setDesignSettings(prev => ({ ...prev, lineHeight: value }))}
+                  min={1.2}
+                  max={2.0}
+                  step={0.1}
+                  className="mt-2"
+                />
+              </div>
+            </CardContent>
+          </Card>
 
-      
+          <Card>
+            <CardHeader>
+              <h3 className="font-semibold text-slate-900">Layout</h3>
+            </CardHeader>
+            <CardContent>
+              <div>
+                <Label>Margins: {designSettings.margins}px</Label>
+                <Slider
+                  value={[designSettings.margins]}
+                  onValueChange={([value]) => setDesignSettings(prev => ({ ...prev, margins: value }))}
+                  min={10}
+                  max={40}
+                  step={5}
+                  className="mt-2"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <h3 className="font-semibold text-slate-900">Colors</h3>
+            </CardHeader>
+            <CardContent>
+              <div>
+                <Label>Accent Color</Label>
+                <div className="flex items-center space-x-2 mt-2">
+                  <input
+                    type="color"
+                    value={designSettings.accentColor}
+                    onChange={(e) => setDesignSettings(prev => ({ ...prev, accentColor: e.target.value }))}
+                    className="w-12 h-8 rounded border"
+                    title="Accent color picker"
+                  />
+                  <Input
+                    value={designSettings.accentColor}
+                    onChange={(e) => setDesignSettings(prev => ({ ...prev, accentColor: e.target.value }))}
+                    placeholder="#2563EB"
+                    className="flex-1"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {activeTab === "settings" && (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <h3 className="font-semibold text-slate-900">Privacy Settings</h3>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Make Resume Public</Label>
+                  <p className="text-sm text-slate-600">Allow others to view your resume</p>
+                </div>
+                <Switch
+                  checked={resumeSettings.isPublic}
+                  onCheckedChange={(checked) =>
+                    setResumeSettings(prev => ({...prev, isPublic: checked }))
+                  }
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Enable ATS Optimization</Label>
+                  <p className="text-sm text-slate-600">Automatically optimize for ATS systems</p>
+                </div>
+                <Switch
+                  checked={resumeSettings.atsOptimized}
+                  onCheckedChange={(checked) => setResumeSettings(prev => ({ ...prev, atsOptimized: checked }))}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <h3 className="font-semibold text-slate-900">Export Settings</h3>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label>Default File Name</Label>
+                <Input
+                  value={resumeSettings.fileName}
+                  onChange={(e) => setResumeSettings(prev => ({ ...prev, fileName: e.target.value }))}
+                  placeholder="John_Doe_Resume"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Include Contact Info in PDF</Label>
+                  <p className="text-sm text-slate-600">Show contact information in exported PDF</p>
+                </div>
+                <Switch
+                  checked={resumeSettings.includeContactInfo}
+                  onCheckedChange={(checked) => setResumeSettings(prev => ({ ...prev, includeContactInfo: checked }))}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

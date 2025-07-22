@@ -5,6 +5,7 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertResumeSchema, resumeSchema } from "@shared/schema";
 import { z } from "zod";
 import { aiService } from "./services/aiService";
+import { generateGeminiContent } from "./services/geminiService";
 import { pdfService } from "./services/pdfService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -146,6 +147,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Gemini resume suggestion endpoint
+  // Helper to trim summary to max words
+  function trimToMaxWords(text: string, maxWords = 100): { trimmed: boolean; summary: string } {
+    const words = text.split(/\s+/);
+    if (words.length > maxWords) {
+      return { trimmed: true, summary: words.slice(0, maxWords).join(' ') + '...' };
+    }
+    return { trimmed: false, summary: text };
+  }
+  app.post('/api/ai/gemini/suggestions', isAuthenticated, async (req: any, res) => {
+    try {
+      const { profile, resumeDraft, length = 'medium', tone = 'formal' } = req.body;
+      console.log('[Gemini Debug] Data from frontend:', { profile, resumeDraft, length, tone });
+      if (!profile || !resumeDraft) {
+        return res.status(400).json({ error: "Missing profile or resume draft." });
+      }
+      // Map length to word limits and prompt text
+      const lengthOptions: Record<string, { prompt: string; maxWords: number }> = {
+        short: { prompt: 'Limit summary to 1-2 sentences or 50 words maximum.', maxWords: 50 },
+        medium: { prompt: 'Limit summary to 3 sentences or 100 words maximum.', maxWords: 100 },
+        long: { prompt: 'Limit summary to 5 sentences or 200 words maximum.', maxWords: 200 }
+      };
+      const lengthSetting = lengthOptions[length] || lengthOptions['medium'];
+      // Tone prompt
+      const tonePrompt = `Write in a ${tone} tone.`;
+      // Strip HTML tags from resumeDraft
+      const plainSummary = resumeDraft.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+      // Build prompt (exclude explicit user details)
+      const prompt = `You are a professional resume writer. Given only the following summary draft, rewrite it to be concise, impactful, and suitable for a resume. ${lengthSetting.prompt} ${tonePrompt} If the draft is minimal, expand and improve it as much as possible based on typical resume standards. Only return the improved summary text, no extra advice or formatting.\n\nSummary: ${plainSummary}`;
+      console.log('[Gemini Debug] FINAL PROMPT:', prompt);
+      const geminiResponse = await generateGeminiContent(prompt);      
+      
+      // Extract only the summary text from Gemini response
+      let summary = '';
+      if (geminiResponse && geminiResponse.candidates && geminiResponse.candidates[0]?.content?.parts[0]?.text) {
+        summary = geminiResponse.candidates[0].content.parts[0].text.trim();
+      } else {
+        summary = JSON.stringify(geminiResponse);
+      }
+      // Trim summary to max words
+      const { trimmed, summary: trimmedSummary } = trimToMaxWords(summary, lengthSetting.maxWords);
+      res.json({ summary: trimmedSummary, trimmed });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Gemini API error" });
+    }
+  });
   app.post('/api/ai/generate-bullet-points', isAuthenticated, async (req: any, res) => {
     try {
       const { jobTitle, company, responsibilities } = req.body;
