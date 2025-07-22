@@ -193,6 +193,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: error.message || "Gemini API error" });
     }
   });
+  // Gemini skills suggestion endpoint
+  app.post('/api/ai/gemini/suggest-skills', isAuthenticated, async (req: any, res) => {
+    try {
+      const { jobTitle, experience } = req.body;
+      console.log('[Gemini Debug] Data from frontend (skills):', { jobTitle, experience });
+      if (!jobTitle || typeof jobTitle !== 'string' || jobTitle.trim().length === 0) {
+        return res.status(400).json({ error: "Valid job title is required for skill suggestions" });
+      }
+      // Build Gemini prompt
+      const prompt = `Suggest relevant technical and soft skills for a ${jobTitle} position. ${experience ? `Based on this experience: ${JSON.stringify(experience)}` : ""} Provide 8-10 technical skills and 5-6 soft skills that are most relevant and in-demand. Respond with a JSON object with \"technical\" and \"soft\" arrays.`;
+      console.log('[Gemini Debug] FINAL PROMPT (skills):', prompt);
+      const geminiResponse = await generateGeminiContent(prompt);
+      let geminiText = '';
+      if (geminiResponse && geminiResponse.candidates && geminiResponse.candidates[0]?.content?.parts[0]?.text) {
+        geminiText = geminiResponse.candidates[0].content.parts[0].text;
+      }
+      console.log('[Gemini Debug] Gemini response (skills):', geminiResponse);
+      console.log('[Gemini Debug] Gemini response text (skills):', geminiText);
+      let skills = { technical: [], soft: [] };
+      try {
+        if (geminiResponse && geminiResponse.candidates && geminiResponse.candidates[0]?.content?.parts[0]?.text) {
+          skills = JSON.parse(geminiResponse.candidates[0].content.parts[0].text);
+        }
+      } catch (e) {
+        skills = { technical: [], soft: [] };
+      }
+      res.json({ skills });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Gemini skills suggestion error" });
+    }
+  });
+
+  // Gemini experience bullet points endpoint
+  app.post('/api/ai/gemini/generate-bullet-points', isAuthenticated, async (req: any, res) => {
+      console.log('[Gemini Debug] Data from frontend (experience):', { jobTitle, company, responsibilities });
+      console.log('[Gemini Debug] FINAL PROMPT (experience):', prompt);
+    try {
+      const { jobTitle, company, responsibilities } = req.body;
+      console.log('[Gemini Debug] Data from frontend (experience):', { jobTitle, company, responsibilities });
+      if (!jobTitle || typeof jobTitle !== 'string' || jobTitle.trim().length === 0) {
+        return res.status(400).json({ error: "Valid job title is required for bullet point generation" });
+      }
+      if (!company || typeof company !== 'string' || company.trim().length === 0) {
+        return res.status(400).json({ error: "Valid company name is required for bullet point generation" });
+      }
+      // Build Gemini prompt
+      const prompt = `Generate 3-4 professional bullet points for a ${jobTitle} position at ${company}. ${responsibilities ? `Current responsibilities: ${responsibilities}` : ""} Each bullet point should: - Start with an action verb - Include quantifiable achievements where possible - Be ATS-friendly - Be specific to the role Respond with a JSON object with a \"bulletPoints\" array of strings.`;
+      console.log('[Gemini Debug] FINAL PROMPT (experience):', prompt);
+      const geminiResponse = await generateGeminiContent(prompt);
+      let bulletPoints: string[] = [];
+      try {
+        if (geminiResponse && geminiResponse.candidates && geminiResponse.candidates[0]?.content?.parts[0]?.text) {
+          const result = JSON.parse(geminiResponse.candidates[0].content.parts[0].text);
+          bulletPoints = result.bulletPoints || [];
+        }
+      } catch (e) {
+        bulletPoints = [];
+      }
+      res.json({ bulletPoints });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Gemini bullet point generation error" });
+    }
+  });
   app.post('/api/ai/generate-bullet-points', isAuthenticated, async (req: any, res) => {
     try {
       const { jobTitle, company, responsibilities } = req.body;
@@ -218,6 +281,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/ai/suggest-skills', isAuthenticated, async (req: any, res) => {
     try {
+      console.log("Received request to suggest skills:", req.body);
       const { jobTitle, experience } = req.body;
       
       if (!jobTitle || typeof jobTitle !== 'string' || jobTitle.trim().length === 0) {

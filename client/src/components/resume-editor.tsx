@@ -345,6 +345,128 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
     }
   });
 
+  // Add AI handlers for each section
+  async function handleAIExperience(expIndex: number) {
+    setSuggestionLoading(true);
+    try {
+      let response;
+      const exp = data.experience[expIndex];
+      if (aiProvider === 'openai') {
+        response = await apiRequest('POST', '/api/ai/generate-bullet-points', {
+          jobTitle: exp.title,
+          company: exp.company,
+          responsibilities: exp.bullets.join('\n'),
+        });
+        const result = await response.json();
+        if (result.bulletPoints && Array.isArray(result.bulletPoints)) {
+          const newExperience = [...data.experience];
+          newExperience[expIndex].bullets = result.bulletPoints;
+          onChange({ ...data, experience: newExperience });
+          toast({ title: 'Success', description: 'AI bullet points generated!' });
+        } else {
+          toast({ title: 'Error', description: 'No bullet points returned from AI', variant: 'destructive' });
+        }
+      } else {
+        response = await apiRequest('POST', '/api/ai/gemini/generate-bullet-points', {
+          jobTitle: exp.title,
+          company: exp.company,
+          responsibilities: exp.bullets.join('\n'),
+        });
+        const result = await response.json();
+        if (result.bulletPoints && Array.isArray(result.bulletPoints)) {
+          const newExperience = [...data.experience];
+          newExperience[expIndex].bullets = result.bulletPoints;
+          onChange({ ...data, experience: newExperience });
+          toast({ title: 'Success', description: 'Gemini bullet points generated!' });
+        } else {
+          toast({ title: 'Error', description: 'No bullet points returned from Gemini', variant: 'destructive' });
+        }
+      }
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message || 'AI suggestion failed', variant: 'destructive' });
+    } finally {
+      setSuggestionLoading(false);
+    }
+  }
+
+  async function handleAISkills() {
+    setSuggestionLoading(true);
+    try {
+      let response;
+      if (aiProvider === 'openai') {
+        response = await apiRequest('POST', '/api/ai/suggest-skills', {
+          jobTitle: data.personalInfo.title,
+          experience: data.experience,
+        });
+        const result = await response.json();
+        if (result.skills && result.skills.technical && result.skills.soft) {
+          onChange({
+            ...data,
+            skills: {
+              technical: result.skills.technical,
+              soft: result.skills.soft,
+            },
+          });
+          toast({ title: 'Success', description: 'AI skills generated!' });
+        } else {
+          toast({ title: 'Error', description: 'No skills returned from AI', variant: 'destructive' });
+        }
+      } else {
+        response = await apiRequest('POST', '/api/ai/gemini/suggest-skills', {
+          jobTitle: data.personalInfo.title,
+          experience: data.experience,
+        });
+        const result = await response.json();
+        // Debug log
+        console.debug('[Gemini Debug] Frontend raw response:', result);
+        let technical = result.skills?.technical || [];
+        let soft = result.skills?.soft || [];
+        // Fallback: try to parse if empty and response text exists
+        if ((technical.length === 0 || soft.length === 0) && result.skills) {
+          let rawText = '';
+          if (typeof result.skills === 'string') {
+            rawText = result.skills;
+          } else if (result.skills.rawText) {
+            rawText = result.skills.rawText;
+          }
+          if (!rawText && result.skills.technical && typeof result.skills.technical === 'string') {
+            rawText = result.skills.technical;
+          }
+          if (rawText) {
+            // Remove all code block markers and trim whitespace/newlines
+            rawText = rawText.replace(/```json|```/g, '').trim();
+            // Remove leading/trailing newlines and spaces
+            rawText = rawText.replace(/^\s+|\s+$/g, '');
+            console.debug('[Gemini Debug] Cleaned skills string for JSON.parse:', rawText);
+            try {
+              const parsed = JSON.parse(rawText);
+              technical = parsed.technical || technical;
+              soft = parsed.soft || soft;
+            } catch (e) {
+              console.debug('[Gemini Debug] Fallback JSON parse failed:', e, rawText);
+            }
+          }
+        }
+        if (technical.length > 0 && soft.length > 0) {
+          onChange({
+            ...data,
+            skills: {
+              technical,
+              soft,
+            },
+          });
+          toast({ title: 'Success', description: 'Gemini skills generated!' });
+        } else {
+          toast({ title: 'Error', description: 'No skills returned from Gemini', variant: 'destructive' });
+        }
+      }
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message || 'AI suggestion failed', variant: 'destructive' });
+    } finally {
+      setSuggestionLoading(false);
+    }
+  }
+
   // --- SECTION RENDERERS ---
   function renderSection(key: SectionKey) {
     switch (key) {
@@ -446,18 +568,6 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
                 <h3 className="font-semibold text-slate-900">Professional Summary</h3>
               </div>
               <div className="flex items-center space-x-2">
-                <Select
-                  value={aiProvider}
-                  onValueChange={(value) => setAiProvider(value as 'openai' | 'gemini')}
-                >
-                  <SelectTrigger className="w-28 h-8 text-xs">
-                    <SelectValue placeholder="AI Provider" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="openai">OpenAI</SelectItem>
-                    <SelectItem value="gemini">Gemini</SelectItem>
-                  </SelectContent>
-                </Select>
                 <Button
                   size="sm"
                   variant="outline"
@@ -498,15 +608,27 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
                 <GripVertical className="w-4 h-4 text-slate-400" />
                 <h3 className="font-semibold text-slate-900">Work Experience</h3>
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={(e) => { e.stopPropagation(); addExperience(); }}
-                className="px-3 py-1 text-xs"
-              >
-                <Plus className="w-3 h-3 mr-1" />
-                Add Experience
-              </Button>
+              <div className="flex items-center space-x-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => { e.stopPropagation(); addExperience(); }}
+                  className="px-3 py-1 text-xs"
+                >
+                  <Plus className="w-3 h-3 mr-1" />
+                  Add Experience
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => { e.stopPropagation(); handleAIExperience(0); }}
+                  disabled={suggestionLoading || data.experience.length === 0}
+                  className="px-3 py-1 text-xs"
+                >
+                  <Sparkles className="w-3 h-3 mr-1" />
+                  {suggestionLoading ? "Generating..." : "AI Generate"}
+                </Button>
+              </div>
             </CardHeader>
             {!collapsedSections.has("experience") && (
               <CardContent className="space-y-4">
@@ -647,7 +769,18 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
                 <GripVertical className="w-4 h-4 text-slate-400" />
                 <h3 className="font-semibold text-slate-900">Skills</h3>
               </div>
-              <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${collapsedSections.has("skills") ? "" : "rotate-180"}`} />
+              <div className="flex items-center space-x-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => { e.stopPropagation(); handleAISkills(); }}
+                  disabled={suggestionLoading}
+                  className="px-3 py-1 text-xs"
+                >
+                  <Sparkles className="w-3 h-3 mr-1" />
+                  {suggestionLoading ? "Generating..." : "AI Generate"}
+                </Button>
+              </div>
             </CardHeader>
             {!collapsedSections.has("skills") && (
               <CardContent className="space-y-4">
@@ -1022,18 +1155,32 @@ function ResumeEditor({ data, onChange, atsScore, isCalculating, onExportPdf, ex
   // --- MAIN RENDER ---
   return (
     <div className="w-full max-w-4xl mx-auto p-6 space-y-6">
-      {/* Header with tabs */}
+      {/* Header with tabs and global AI provider selection */}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-slate-900">Resume Editor</h2>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-4">
+          {/* Global AI Provider Selection */}
+          <div className="flex items-center space-x-2">
+            <Label className="text-xs">AI Model:</Label>
+            <Select value={aiProvider} onValueChange={(value) => setAiProvider(value as 'openai' | 'gemini')}>
+              <SelectTrigger className="w-28 h-8 text-xs">
+                <SelectValue placeholder="AI Provider" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="openai">OpenAI</SelectItem>
+                <SelectItem value="gemini">Gemini</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           {onExportPdf && (
             <Button
+              size="sm"
+              variant="outline"
               onClick={onExportPdf}
               disabled={exportPdfPending}
-              variant="outline"
-              size="sm"
+              className="px-3 py-1 text-xs"
             >
-              <Download className="w-4 h-4 mr-2" />
+              <FileText className="w-4 h-4 mr-1" />
               {exportPdfPending ? "Exporting..." : "Export PDF"}
             </Button>
           )}
