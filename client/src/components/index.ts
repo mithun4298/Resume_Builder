@@ -1,6 +1,11 @@
 // Central export file for better imports
-export { default as Header } from './Header';
+export { default as Header } from './header';
 export { default as Footer } from './footer';
+export { default as StatsCard } from './StatsCard';
+export { default as QuickActionCard } from './QuickActionCard';
+export { default as ResumeCard } from './ResumeCard';
+export { default as ResumeCardSkeleton } from './ResumeCardSkeleton';
+export { default as EmptyState } from './EmptyState';
 export { Layout, LayoutWithCustomHeader } from './Layout';
 
 // UI Components
@@ -13,3 +18,10 @@ export { default as ModernTemplate } from './resume-templates/ModernTemplate';
 export { default as ClassicTemplate } from './resume-templates/ClassicTemplate';
 export { default as BoldTemplate } from './resume-templates/BoldTemplate';
 export { default as MinimalExecutive } from './resume-templates/MinimalExecutive';
+
+// Dashboard Components
+export { default as EnhancedHero } from './dashboard/EnhancedHero';
+export { default as SearchAndFilter } from './dashboard/SearchAndFilter';
+export { default as EnhancedResumeCard } from './dashboard/EnhancedResumeCard';
+export { default as QuickActionsPanel } from './dashboard/QuickActionsPanel';
+export { default as RecentActivity } from './dashboard/RecentActivity';

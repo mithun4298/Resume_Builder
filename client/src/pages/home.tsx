@@ -9,10 +9,15 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { createDefaultResumeData, defaultResumeSettings, formatDate } from "@/lib/defaultResumeData";
 import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/header";
-import { formatDate } from "@/lib/utils";
-import Footer from "@/components/footer";  // Add this import
+import Footer from "@/components/footer";
+import StatsCard from "@/components/StatsCard";
+import QuickActionCard from "@/components/QuickActionCard";
+import ResumeCard from "@/components/ResumeCard";
+import ResumeCardSkeleton from "@/components/ResumeCardSkeleton";
+import EmptyState from "@/components/EmptyState";
 import { Plus, FileText, Calendar, Download, Edit, Trash2, Eye, Clock, Star, TrendingUp, Users, Award } from "lucide-react";
 import type { Resume as SharedResume } from "@shared/schema";
 
@@ -87,37 +92,10 @@ export default function Home() {
 
   const createResumeMutation = useMutation({
     mutationFn: async (title: string) => {
-      const defaultResumeData = {
-        personalInfo: {
-          firstName: "",
-          lastName: "",
-          title: "",
-          email: "",
-          phone: "",
-          location: "",
-          website: "",
-        },
-        summary: "",
-        experience: [],
-        education: [],
-        skills: { technical: [], soft: [] },
-        projects: [],
-        certifications: [],
-        sectionOrder: [
-          "personal",
-          "summary",
-          "experience",
-          "skills",
-          "education",
-          "projects"
-        ],
-      };
-
       return await apiRequest("POST", "/api/resumes", {
         title,
-        data: defaultResumeData,
-        templateId: "modern",
-        isPublic: false,
+        data: createDefaultResumeData(),
+        ...defaultResumeSettings,
       });
     },
     onSuccess: async (response) => {
@@ -161,14 +139,6 @@ export default function Home() {
       </div>
     );
   }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
 
   const handleDeleteResume = (resumeId: string) => {
     deleteResumeMutation.mutate(resumeId);
@@ -317,16 +287,7 @@ export default function Home() {
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(6)].map((_, i) => (
-                <Card key={i} className="animate-pulse">
-                  <CardHeader>
-                    <div className="h-4 bg-slate-200 rounded w-3/4"></div>
-                    <div className="h-3 bg-slate-200 rounded w-1/2"></div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-3 bg-slate-200 rounded w-full mb-2"></div>
-                    <div className="h-3 bg-slate-200 rounded w-2/3"></div>
-                  </CardContent>
-                </Card>
+                <ResumeCardSkeleton key={i} />
               ))}
             </div>
           ) : resumes && resumes.length > 0 ? (
@@ -343,148 +304,49 @@ export default function Home() {
               ))}
             </div>
           ) : (
-            <div className="p-12 text-center">
-              <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No resumes yet</h3>
-              <p className="text-gray-600 mb-6">Create your first resume to get started</p>
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create Your First Resume
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Create New Resume</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="title">Resume Title</Label>
-                      <Input
-                        id="title"
-                        value={newResumeTitle}
-                        onChange={(e) => setNewResumeTitle(e.target.value)}
-                        placeholder="e.g., Software Engineer Resume"
-                      />
-                    </div>
-                    <Button 
-                      onClick={() => createResumeMutation.mutate(newResumeTitle)}
-                      disabled={!newResumeTitle.trim() || createResumeMutation.isPending}
-                      className="w-full"
-                    >
-                      {createResumeMutation.isPending ? "Creating..." : "Create Resume"}
+            <EmptyState
+              icon={<FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />}
+              title="No resumes yet"
+              description="Create your first resume to get started"
+              action={
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Your First Resume
                     </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create New Resume</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="title">Resume Title</Label>
+                        <Input
+                          id="title"
+                          value={newResumeTitle}
+                          onChange={(e) => setNewResumeTitle(e.target.value)}
+                          placeholder="e.g., Software Engineer Resume"
+                        />
+                      </div>
+                      <Button 
+                        onClick={() => createResumeMutation.mutate(newResumeTitle)}
+                        disabled={!newResumeTitle.trim() || createResumeMutation.isPending}
+                        className="w-full"
+                      >
+                        {createResumeMutation.isPending ? "Creating..." : "Create Resume"}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              }
+            />
           )}
         </div>
       </main>
       
       <Footer />
-    </div>
-  );
-}
-
-// Supporting Components
-interface StatsCardProps {
-  icon: React.ReactNode;
-  title: string;
-  value: string;
-  subtitle: string;
-}
-
-function StatsCard({ icon, title, value, subtitle }: StatsCardProps) {
-  return (
-    <div className="bg-white rounded-lg shadow-sm border p-6">
-      <div className="flex items-center">
-        <div className="flex-shrink-0">
-          {icon}
-        </div>
-        <div className="ml-4">
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
-          <p className="text-xs text-gray-500">{subtitle}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-interface QuickActionCardProps {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  onClick: () => void;
-}
-
-function QuickActionCard({ icon, title, description, onClick }: QuickActionCardProps) {
-  return (
-    <button
-      onClick={onClick}
-      className="text-left p-4 border rounded-lg hover:bg-gray-50 transition-colors"
-    >
-      <div className="flex items-center mb-2">
-        <div className="text-blue-600 mr-2">{icon}</div>
-        <h3 className="font-medium text-gray-900">{title}</h3>
-      </div>
-      <p className="text-sm text-gray-600">{description}</p>
-    </button>
-  );
-}
-
-interface ResumeCardProps {
-  resume: Resume;
-  onEdit: () => void;
-  onDelete: () => void;
-  onDownload: () => void;
-  onPreview: () => void;
-}
-
-function ResumeCard({ resume, onEdit, onDelete, onDownload, onPreview }: ResumeCardProps) {
-  return (
-    <div className="p-6 hover:bg-gray-50 transition-colors">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-            <FileText className="w-6 h-6 text-blue-600" />
-          </div>
-          <div>
-            <h3 className="font-medium text-gray-900">{resume.title}</h3>
-            <div className="flex items-center space-x-4 text-sm text-gray-600">
-              <span>{resume.templateId} Template</span>
-              <span className="flex items-center">
-                <Clock className="w-3 h-3 mr-1" />
-                {formatDate(resume.updatedAt)}
-              </span>
-              <span className="flex items-center">
-                <Download className="w-3 h-3 mr-1" />
-                {resume.downloadCount || 0}
-              </span>
-            </div>
-          </div>
-          <div className="flex space-x-2">
-            <Button size="sm" variant="outline" onClick={onPreview}>
-              <Eye className="w-4 h-4 mr-1" />
-              Preview
-            </Button>
-            <Button size="sm" variant="outline" onClick={onEdit}>
-              <Edit className="w-4 h-4 mr-1" />
-              Edit
-            </Button>
-            <Button size="sm" variant="outline" onClick={onDownload}>
-              <Download className="w-4 h-4 mr-1" />
-              Download
-            </Button>
-            <Button size="sm" variant="destructive" onClick={onDelete}>
-              <Trash2 className="w-4 h-4 mr-1" />
-              Delete
-            </Button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
