@@ -2,56 +2,53 @@
 import type { ResumeData } from "../../../shared/schema";
 export const dummyITResumeData: ResumeData = {
   personalInfo: {
-    firstName: "Mithun",
-    lastName: "Kumar",
-    title: "Full Stack Developer",
-    email: "mithun.kumar@example.com",
-    phone: "+91-9546333144",
+    firstName: "John",
+    lastName: "Doe",
+    title: "Software Engineer",
+    email: "john.doe@email.com",
+    phone: "+1 (555) 123-4567",
     location: "San Francisco, CA",
-    website: "https://mithunkumar.dev"
+    website: "linkedin.com/in/johndoe",
+    github: "github.com/johndoe"
   },
-  summary: "<p>Results-driven Full Stack Developer with 6+ years of experience building scalable web applications and leading agile teams. Passionate about cloud, DevOps, and modern JavaScript frameworks.</p>",
+  summary: "<p>Experienced software engineer with 5+ years of experience in full-stack development, specializing in React, Node.js, and cloud technologies.</p>",
   experience: [
     {
       title: "Senior Software Engineer",
-      company: "TechNova Solutions",
-      location: "Remote",
-      startDate: "2021-03",
-      endDate: "",
+      company: "Tech Corp",
+      location: "",
+      startDate: "2021",
+      endDate: "Present",
       current: true,
       bullets: [
-        "Led a team of 5 engineers to deliver a SaaS analytics platform (React, Node.js, AWS).",
-        "Implemented CI/CD pipelines with GitHub Actions and Docker, reducing deployment time by 40%.",
-        "Mentored junior developers and conducted code reviews for best practices."
+        "Led development of scalable web applications using React and Node.js"
       ]
     },
     {
       title: "Full Stack Developer",
-      company: "Cloudify Inc.",
-      location: "San Jose, CA",
-      startDate: "2018-06",
-      endDate: "2021-02",
+      company: "StartupXYZ",
+      location: "",
+      startDate: "2019",
+      endDate: "2021",
       current: false,
       bullets: [
-        "Developed RESTful APIs and microservices using Node.js and Express.",
-        "Built responsive UIs with React and TypeScript, improving user engagement by 30%.",
-        "Integrated third-party APIs (Stripe, Auth0) and managed AWS infrastructure."
+        "Built and maintained multiple client applications"
       ]
     }
   ],
   education: [
     {
-      institution: "Stanford University",
+      institution: "University of Technology",
       degree: "B.S.",
       field: "Computer Science",
-      startDate: "2014-09",
-      endDate: "2018-06",
-      gpa: "3.8"
+      startDate: "2015",
+      endDate: "2019",
+      gpa: ""
     }
   ],
   skills: {
     technical: [
-      "JavaScript", "TypeScript", "React", "Node.js", "Express", "AWS", "Docker", "PostgreSQL", "GraphQL", "CI/CD"
+      "JavaScript", "TypeScript", "React", "Node.js", "Python", "AWS", "Docker", "Git"
     ],
     soft: [
       "Agile Leadership", "Mentoring", "Problem Solving", "Communication"

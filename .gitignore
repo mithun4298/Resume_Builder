@@ -9,3 +9,5 @@ vite.config.ts.*
 .env.*
 # Ignore VS Code settings
 .vscode/
+*.md
+# Ignore log files
