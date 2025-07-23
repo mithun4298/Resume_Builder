@@ -1,1 +1,1 @@
-export { default } from "../TemplateCarousel";
+export { default } from "./TemplateCarousel";

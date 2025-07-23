@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Star, FileText, Sparkles, Download, Users, Zap, ShieldCheck, LayoutGrid, Smile, CheckCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import React, { Suspense } from "react";
+import Header from "@/components/header"; // Add this import
 
 // Lazy loaded components
 const ParticleBackground = React.lazy(() => import("@/components/particle-bg"));
@@ -74,42 +75,23 @@ const TemplateLoadingFallback = () => (
 export default function Landing() {
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 overflow-x-hidden">
+      {/* Add Header component */}
+      <Header />
+      
       {/* Particle Background with lazy loading */}
       <Suspense fallback={null}>
         <ParticleBackground />
       </Suspense>
       
-      {/* Navigation */}
+      {/* Remove the old custom navigation - it's now handled by Header */}
+      {/* 
       <nav className="bg-white/80 shadow-sm fixed top-0 left-0 right-0 z-20 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center">
-              <FileText className="h-4 w-4 text-white" />
-            </div>
-            <span className="text-xl font-bold text-slate-900 tracking-tight">ResumeAI</span>
-          </div>
-          <div className="hidden md:flex items-center space-x-8 text-slate-700 font-medium">
-            <a href="#features" className="hover:text-primary transition-colors">
-              Features
-            </a>
-            <a href="#testimonials" className="hover:text-primary transition-colors">
-              Testimonials
-            </a>
-            <a href="#pricing" className="hover:text-primary transition-colors">
-              Pricing
-            </a>
-          </div>
-          <Button
-            onClick={() => (window.location.href = "/api/login")}
-            className="bg-primary hover:bg-primary/90 px-6 py-2 text-base font-semibold shadow-md"
-          >
-            Get Started
-          </Button>
-        </div>
+        ... old navigation code removed ...
       </nav>
+      */}
 
-      {/* Hero Section */}
-      <section className="relative flex flex-col items-center justify-center pt-32 pb-24 text-center z-10">
+      {/* Hero Section - adjusted padding-top for Header */}
+      <section className="relative flex flex-col items-center justify-center pt-24 pb-24 text-center z-10">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}

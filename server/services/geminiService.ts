@@ -2,10 +2,24 @@ import axios from 'axios';
 import crypto from 'crypto';
 
 // Encrypt your API key before storing it in the environment variable
+
 const ENCRYPTION_KEY = process.env.GEMINI_ENCRYPTION_KEY || 'default_key_32bytes_long!'; // Must be 32 bytes
 const IV = process.env.GEMINI_IV || 'default_iv_16bytes!'; // Must be 16 bytes
 
+function validateCryptoInputs() {
+  const keyBuf = Buffer.from(ENCRYPTION_KEY);
+  const ivBuf = Buffer.from(IV);
+  if (keyBuf.length !== 32) {
+    throw new Error(`Invalid ENCRYPTION_KEY length: ${keyBuf.length}. Must be 32 bytes.`);
+  }
+  if (ivBuf.length !== 16) {
+    throw new Error(`Invalid IV length: ${ivBuf.length}. Must be 16 bytes.`);
+  }
+}
+
+
 function encrypt(text: string): string {
+  validateCryptoInputs();
   const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), Buffer.from(IV));
   let encrypted = cipher.update(text);
   encrypted = Buffer.concat([encrypted, cipher.final()]);
@@ -13,6 +27,7 @@ function encrypt(text: string): string {
 }
 
 function decrypt(text: string): string {
+  validateCryptoInputs();
   const encryptedText = Buffer.from(text, 'hex');
   const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), Buffer.from(IV));
   let decrypted = decipher.update(encryptedText);

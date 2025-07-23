@@ -1,18 +1,18 @@
 import React, { useRef, useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import ModernTemplate from "./resume-templates/ModernTemplate";
-import ClassicTemplate from "./resume-templates/ClassicTemplate";
-import MinimalistTemplate from "./resume-templates/MinimalistTemplate";
-import ElegantTemplate from "./resume-templates/ElegantTemplate";
-import BoldTemplate from "./resume-templates/BoldTemplate";
-import TwoColumnTemplate from "./resume-templates/TwoColumnTemplate";
-import ExecutiveLuxury from "./resume-templates/ExecutiveLuxury";
-import CreativeModern from "./resume-templates/CreativeModern";
+import ModernTemplate from "../resume-templates/ModernTemplate";
+import ClassicTemplate from "../resume-templates/ClassicTemplate";
+import MinimalistTemplate from "../resume-templates/MinimalistTemplate";
+import ElegantTemplate from "../resume-templates/ElegantTemplate";
+import BoldTemplate from "../resume-templates/BoldTemplate";
+import TwoColumnTemplate from "../resume-templates/TwoColumnTemplate";
+import ExecutiveLuxury from "../resume-templates/ExecutiveLuxury";
+import CreativeModern from "../resume-templates/CreativeModern";
 import type { ResumeData } from "@shared/schema";
 
 // Import the existing dummy data
-import { dummyITResumeData } from "./dummyITResumeData";
+import { dummyITResumeData } from "../dummyITResumeData";
 
 const templates = [
   { id: "modern", name: "Modern", component: ModernTemplate },
@@ -28,6 +28,51 @@ const templates = [
 type TemplateCarouselProps = {
   onSelectTemplate?: (templateId: string) => void;
 };
+
+// Updated Preview wrapper with proper CSS reset
+const PreviewWrapper = ({ children }: { children: React.ReactNode }) => (
+  <div
+    style={{
+      width: '100%',
+      height: '100%',
+      position: 'relative',
+      background: 'white',
+      overflow: 'hidden',
+      borderRadius: '4px',
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+    }}
+  >
+    <div
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '794px', // A4 width in pixels
+        height: '1123px', // A4 height in pixels
+        transformOrigin: 'top left',
+        transform: 'scale(0.28)', // Scale to fit the card
+        background: 'white',
+        overflow: 'hidden',
+      }}
+      className="template-preview-container"
+    >
+      <div 
+        style={{ 
+          width: '100%', 
+          height: '100%',
+          // Reset all inherited styles to allow template styles to take precedence
+          fontFamily: 'inherit',
+          fontSize: 'inherit',
+          lineHeight: 'inherit',
+          color: 'inherit',
+          textAlign: 'inherit',
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  </div>
+);
 
 const TemplateCarousel = ({ onSelectTemplate = () => {} }: TemplateCarouselProps) => {
   const [, navigate] = useLocation();
@@ -88,51 +133,6 @@ const TemplateCarousel = ({ onSelectTemplate = () => {} }: TemplateCarouselProps
   const handleMouseLeave = () => {
     setIsAutoScrolling(true);
   };
-
-  // Updated Preview wrapper with proper CSS reset
-  const PreviewWrapper = ({ children }: { children: React.ReactNode }) => (
-    <div
-      style={{
-        width: '100%',
-        height: '100%',
-        position: 'relative',
-        background: 'white',
-        overflow: 'hidden',
-        borderRadius: '4px',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-      }}
-    >
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '794px', // A4 width in pixels
-          height: '1123px', // A4 height in pixels
-          transformOrigin: 'top left',
-          transform: 'scale(0.28)', // Scale to fit the card
-          background: 'white',
-          overflow: 'hidden',
-        }}
-        className="template-preview-container"
-      >
-        <div 
-          style={{ 
-            width: '100%', 
-            height: '100%',
-            // Reset all inherited styles to allow template styles to take precedence
-            fontFamily: 'inherit',
-            fontSize: 'inherit',
-            lineHeight: 'inherit',
-            color: 'inherit',
-            textAlign: 'inherit',
-          }}
-        >
-          {children}
-        </div>
-      </div>
-    </div>
-  );
 
   const TemplatePreview: React.FC<{ template: { id: string; name: string; component: React.FC<{ resumeData: ResumeData }> } }> = ({ template }) => {
     const TemplateComponent = template.component;
