@@ -1,5 +1,13 @@
-import { Request, Response, NextFunction, Application } from 'express';
+import { Issuer } from 'openid-client';
+import session from 'express-session';
+import type { Express, RequestHandler, Router } from 'express';
+import connectPg from 'connect-pg-simple';
 import { storage } from './storage';
+
+// Check for required environment variables
+if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+  console.warn('Google OIDC environment variables not provided - authentication will be disabled');
+}
 
 // Define proper interfaces
 interface AuthClaims {
@@ -17,7 +25,7 @@ interface AuthClaims {
   };
   picture?: string;
   profile_image_url?: string;
-  [key: string]: any; // Allow additional properties
+  [key: string]: any;
 }
 
 interface AuthUser {
@@ -26,40 +34,73 @@ interface AuthUser {
   name?: string;
   firstName?: string;
   lastName?: string;
+  profileImageUrl?: string;
+  access_token?: string;
+  refresh_token?: string;
+  expires_at?: number;
 }
 
-// Extend Request interface properly
-declare global {
-  namespace Express {
-    interface Request {
-      user?: AuthUser;
-    }
+// Extend session type
+declare module 'express-session' {
+  interface SessionData {
+    user?: AuthUser;
   }
 }
 
-// Alternative: Create a custom interface if global extension doesn't work
-interface AuthenticatedRequest extends Request {
-  user?: AuthUser;
-}
+export function getSession() {
+  const sessionTtl = 7 * 24 * 60 * 60 * 1000;
+  
+  if (!process.env.DATABASE_URL) {
+    // Fallback to memory store for development
+    return session({
+      secret: process.env.SESSION_SECRET || 'dev-secret-key',
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        httpOnly: true,
+        secure: false,
+        maxAge: sessionTtl,
+      },
+    });
+  }
 
-export function setupAuth(app: Application): void {
-  app.use('/auth', (_req: Request, res: Response) => {
-    res.json({ message: 'Auth endpoint' });
+  const pgStore = connectPg(session);
+  const sessionStore = new pgStore({
+    conString: process.env.DATABASE_URL,
+    createTableIfMissing: false,
+    ttl: sessionTtl,
+    tableName: 'sessions',
+  });
+
+  return session({
+    secret: process.env.SESSION_SECRET!,
+    store: sessionStore,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: false, // allow local dev
+      maxAge: sessionTtl,
+    },
   });
 }
 
-export async function upsertUser(claims: AuthClaims): Promise<void> {
+function updateUserSession(user: AuthUser, tokens: any) {
+  console.log('[updateUserSession] user.id:', user.id);
+  user.access_token = tokens.access_token;
+  user.refresh_token = tokens.refresh_token;
+  user.expires_at = tokens.expires_at || (tokens.expires_in ? Math.floor(Date.now() / 1000) + tokens.expires_in : undefined);
+}
+
+async function upsertUser(claims: AuthClaims) {
   try {
     console.log('[upsertUser] claims:', claims);
     
-    // Ensure id is always a non-null string
     let id = claims.sub || claims.id;
     if (!id) {
-      // Generate a unique string id if missing (timestamp + random)
       id = `gen_${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
     }
     
-    // Support Google and other providers' field names
     const email = claims.email || (claims.emails?.[0]?.value);
     const firstName = claims.given_name || claims.first_name || claims.name?.givenName;
     const lastName = claims.family_name || claims.last_name || claims.name?.familyName;
@@ -80,134 +121,207 @@ export async function upsertUser(claims: AuthClaims): Promise<void> {
   }
 }
 
-export async function handleAuthCallback(_req: Request, res: Response): Promise<void> {
+export async function setupAuth(app: Express) {
+  console.log('[setupAuth] Initializing authentication routes');
+  
+  // Set up session middleware
+  app.set('trust proxy', 1);
+  app.use(getSession());
+
+  // Check if Google OAuth is configured
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    console.warn('[setupAuth] Google OAuth not configured - setting up mock routes');
+    setupMockAuth(app);
+    return;
+  }
+
   try {
-    // TODO: Implement actual auth callback logic
-    // This would typically:
-    // 1. Extract auth code from request
-    // 2. Exchange code for tokens
-    // 3. Get user info from provider
-    // 4. Call upsertUser with user claims
-    // 5. Generate JWT token
-    // 6. Redirect or return token
-    
-    res.json({ 
-      message: 'Auth callback handled',
-      status: 'success'
+    // Discover Google OIDC endpoints
+    const issuer = await Issuer.discover('https://accounts.google.com');
+    const client = new issuer.Client({
+      client_id: process.env.GOOGLE_CLIENT_ID!,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+      redirect_uris: ['http://localhost:5000/api/callback'],
+      response_types: ['code'],
     });
+
+    // Start login: redirect to Google
+    app.get('/api/login', (req, res) => {
+      console.log('[setupAuth] Login route accessed - redirecting to Google');
+      const url = client.authorizationUrl({
+        scope: 'openid email profile',
+        prompt: 'login consent',
+      });
+      res.redirect(url);
+    });
+
+    // Callback: handle Google response, get tokens, store in session
+    app.get('/api/callback', async (req, res) => {
+      try {
+        console.log('[setupAuth] Callback route accessed');
+        const params = client.callbackParams(req);
+        const tokenSet = await client.callback('http://localhost:5000/api/callback', params, { state: undefined });
+        
+        let userInfo: any = {};
+        if (tokenSet.access_token) {
+          userInfo = await client.userinfo(tokenSet.access_token);
+        }
+
+        // Save user and tokens in session
+        req.session.user = {
+          id: userInfo.sub,
+          email: userInfo.email,
+          firstName: userInfo.given_name,
+          lastName: userInfo.family_name,
+          profileImageUrl: userInfo.picture,
+          access_token: tokenSet.access_token,
+          refresh_token: tokenSet.refresh_token,
+          expires_at: tokenSet.expires_at || (tokenSet.expires_in ? Math.floor(Date.now() / 1000) + tokenSet.expires_in : undefined),
+        };
+
+        await upsertUser(userInfo);
+        
+        // Redirect to frontend home page
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        res.redirect(`${frontendUrl}/home`);
+      } catch (err) {
+        console.error('[OIDC callback error]', err);
+        res.redirect('/api/login');
+      }
+    });
+
+    // Auth user endpoint
+    app.get('/api/auth/user', (req, res) => {
+      if (req.session.user) {
+        res.json({ user: req.session.user });
+      } else {
+        res.status(401).json({ message: 'Unauthorized' });
+      }
+    });
+
+    // User info route (alias for compatibility)
+    app.get('/api/user', (req, res) => {
+      if (req.session.user) {
+        res.json(req.session.user);
+      } else {
+        res.status(401).json({ message: 'Unauthorized' });
+      }
+    });
+
+    // Logout
+    app.get('/api/logout', (req, res) => {
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('[setupAuth] Logout error:', err);
+        }
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        res.redirect(frontendUrl);
+      });
+    });
+
+    console.log('[setupAuth] Google OAuth authentication setup complete');
   } catch (error) {
-    console.error('[handleAuthCallback] Error:', error);
-    res.status(500).json({ 
-      error: 'Authentication failed',
-      message: 'Internal server error'
-    });
+    console.error('[setupAuth] Error setting up Google OAuth:', error);
+    setupMockAuth(app);
   }
 }
 
-export function isAuthenticated(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
-  try {
-    // TODO: Implement actual authentication logic
-    // This would typically:
-    // 1. Extract JWT token from Authorization header
-    // 2. Verify token signature and expiration
-    // 3. Extract user info from token
-    // 4. Attach user to request object
-    // 5. Call next() if valid, or return 401 if invalid
+// Fallback mock authentication for development
+function setupMockAuth(app: Express) {
+  console.log('[setupMockAuth] Setting up mock authentication routes');
+
+  app.get('/api/login', (req, res) => {
+    console.log('[setupMockAuth] Mock login route accessed');
     
-    // For now, just pass through (development mode)
-    console.log('[isAuthenticated] Authentication check passed (development mode)');
-    
-    // Set a mock authenticated user for development
-    req.user = {
-      id: 'dev_user_123',
-      email: 'dev@example.com',
-      name: 'Development User',
-      firstName: 'Dev',
-      lastName: 'User'
+    // Create a mock user session
+    req.session.user = {
+      id: 'mock_user_123',
+      email: 'mock@example.com',
+      firstName: 'Mock',
+      lastName: 'User',
+      profileImageUrl: 'https://via.placeholder.com/150',
     };
-    
-    next();
-  } catch (error) {
-    console.error('[isAuthenticated] Authentication error:', error);
-    res.status(401).json({ 
-      error: 'Authentication required',
-      message: 'Invalid or missing authentication token'
-    });
-  }
-}
 
-// Optional: Export a middleware that adds user context to requests
-export function optionalAuth(req: AuthenticatedRequest, next: NextFunction): void {
-  try {
-    // TODO: Implement optional authentication
-    // This would extract user info if token is present, but not require it
-    
-    const authHeader = req.headers.authorization;
-    
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      // TODO: Verify JWT token here
-      // For now, set a mock authenticated user
-      req.user = {
-        id: 'auth_user_456',
-        email: 'user@example.com',
-        name: 'Authenticated User',
-        firstName: 'Auth',
-        lastName: 'User'
-      };
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    res.redirect(`${frontendUrl}/home`);
+  });
+
+  app.get('/api/auth/user', (req, res) => {
+    if (req.session.user) {
+      res.json({ user: req.session.user });
     } else {
-      // Set anonymous user for unauthenticated requests
-      req.user = {
-        id: 'anonymous',
-        email: 'anonymous@example.com',
-        name: 'Anonymous User'
-      };
+      res.status(401).json({ message: 'Unauthorized' });
     }
-    
-    next();
-  } catch (error) {
-    console.error('[optionalAuth] Error:', error);
-    // Even if auth fails, continue with anonymous user
-    req.user = {
-      id: 'anonymous',
-      email: 'anonymous@example.com',
-      name: 'Anonymous User'
-    };
-    next();
-  }
+  });
+
+  app.get('/api/user', (req, res) => {
+    if (req.session.user) {
+      res.json(req.session.user);
+    } else {
+      res.status(401).json({ message: 'Unauthorized' });
+    }
+  });
+
+  app.get('/api/logout', (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('[setupMockAuth] Logout error:', err);
+      }
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      res.redirect(frontendUrl);
+    });
+  });
 }
 
-// Helper function to extract user from JWT token (for future implementation)
-export function extractUserFromToken(token: string): AuthUser | null {
-  try {
-    // TODO: Implement JWT token verification and user extraction
-    // This would typically:
-    // 1. Verify token signature
-    // 2. Check expiration
-    // 3. Extract payload
-    // 4. Return user object
-    
-    console.log('[extractUserFromToken] Token extraction not implemented:', token.substring(0, 20) + '...');
-    return null;
-  } catch (error) {
-    console.error('[extractUserFromToken] Error extracting user from token:', error);
-    return null;
+export const isAuthenticated: RequestHandler = async (req, res, next) => {
+  const user = req.session.user;
+  console.log('[isAuthenticated] session.user:', user ? 'exists' : 'not found');
+  
+  if (!user) {
+    return res.status(401).json({ message: 'Unauthorized' });
   }
-}
 
-// Helper function to generate JWT token (for future implementation)
-export function generateAuthToken(user: AuthUser): string {
-  try {
-    // TODO: Implement JWT token generation
-    // This would typically:
-    // 1. Create payload with user info
-    // 2. Sign with secret key
-    // 3. Set expiration
-    // 4. Return signed token
-    
-    console.log('[generateAuthToken] Token generation not implemented for user:', user.id);
-    return 'mock_jwt_token_' + user.id;
-  } catch (error) {
-    console.error('[generateAuthToken] Error generating token:', error);
-    throw error;
+  // If no expiration or Google OAuth not configured, just proceed
+  if (!user.expires_at || !process.env.GOOGLE_CLIENT_ID) {
+    return next();
   }
+
+  const now = Math.floor(Date.now() / 1000);
+  if (now <= user.expires_at) {
+    return next();
+  }
+
+  // Token expired, try to refresh
+  const refreshToken = user.refresh_token;
+  if (!refreshToken) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try {
+    const issuer = await Issuer.discover('https://accounts.google.com');
+    const googleClient = new issuer.Client({
+      client_id: process.env.GOOGLE_CLIENT_ID!,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+      redirect_uris: ['http://localhost:5000/api/callback'],
+      response_types: ['code'],
+    });
+
+    const tokenResponse = await googleClient.refresh(refreshToken);
+    updateUserSession(user, tokenResponse);
+    req.session.user = user;
+    
+    return next();
+  } catch (error: any) {
+    console.error('[OIDC Refresh Error]', error);
+    return res.status(401).json({ 
+      message: 'Unauthorized', 
+      error: error?.message 
+    });
+  }
+};
+
+// Legacy exports for compatibility
+export async function handleAuthCallback(req: any, res: any): Promise<void> {
+  // This is handled by the /api/callback route above
+  res.json({ message: 'Use /api/callback instead' });
 }
