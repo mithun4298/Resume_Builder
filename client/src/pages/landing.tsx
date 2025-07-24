@@ -2,7 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Star, FileText, Sparkles, Download, Users, Zap, ShieldCheck, LayoutGrid, Smile, CheckCircle, TrendingUp, Award, Clock, Globe } from "lucide-react";
 import { motion } from "framer-motion";
 import React, { Suspense } from "react";
-import Header from "@/components/header";
+import { Header } from "@/components";
+
 import ParticleBackground from "@/components/particle-bg";
 import TemplateCarousel from "@/components/TemplateCarousel/TemplateCarousel";
 import TestimonialsSection from "@/components/landing/TestimonialsSection";

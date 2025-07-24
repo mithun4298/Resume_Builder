@@ -1,209 +1,233 @@
-import OpenAI from "openai";
+import OpenAI from 'openai';
 
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || "" 
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
-class AIService {
-  private validateApiKey(): void {
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error("OpenAI API key is not configured");
+export class AIService {
+  async generateSummary(personalInfo: any, experience: any[]): Promise<string> {
+    try {
+      if (!process.env.OPENAI_API_KEY) {
+        throw new Error('OpenAI API key is not configured');
+      }
+
+      const prompt = `Generate a professional resume summary for:
+Name: ${personalInfo.firstName} ${personalInfo.lastName}
+Experience: ${experience.map(exp => `${exp.title} at ${exp.company}`).join(', ')}
+
+Create a compelling 2-3 sentence professional summary that highlights key strengths and career focus.`;
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a professional resume writer. Create concise, impactful resume summaries.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        max_tokens: 150,
+        temperature: 0.7,
+      });
+
+      const content = response.choices[0]?.message?.content?.trim();
+      if (!content) {
+        throw new Error('No content generated from AI service');
+      }
+
+      return content;
+    } catch (error: unknown) {
+      console.error('AI Service Error:', error);
+      
+      if (error instanceof Error) {
+        if (error.message?.includes("API key")) {
+          throw new Error('Invalid API key. Please check your OpenAI configuration.');
+        }
+        if (error.message?.includes("quota")) {
+          throw new Error('API quota exceeded. Please try again later.');
+        }
+        throw new Error(`Failed to generate summary: ${error.message}`);
+      }
+      
+      throw new Error('Failed to generate summary: Unknown error occurred');
     }
   }
 
-  async generateSummary(experience: any[], skills: string[], title: string): Promise<string> {
+  async generateProfessionalSummary(resumeData: any): Promise<string> {
     try {
-      this.validateApiKey();
-      
-      if (!title) {
-        throw new Error("Job title is required for summary generation");
+      if (!process.env.OPENAI_API_KEY) {
+        throw new Error('OpenAI API key is not configured');
       }
 
-      const prompt = `Generate a professional resume summary for a ${title} with the following experience and skills. The summary should be 2-3 sentences, highlight key achievements, and be ATS-friendly.
+      const prompt = `Based on this resume data, generate a professional summary:
+${JSON.stringify(resumeData, null, 2)}
 
-Experience: ${JSON.stringify(experience)}
-Skills: ${skills.join(", ")}
-
-Please respond with just the summary text, no additional formatting.`;
+Create a compelling professional summary that highlights the candidate's key strengths, experience, and career objectives in 2-3 sentences.`;
 
       const response = await openai.chat.completions.create({
-        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-        messages: [{ role: "user", content: prompt }],
+        model: 'gpt-3.5-turbo',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert resume writer. Create professional, impactful summaries.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
         max_tokens: 200,
         temperature: 0.7,
       });
 
-      const content = response.choices[0].message.content?.trim();
+      const content = response.choices[0]?.message?.content?.trim();
       if (!content) {
-        throw new Error("No content received from OpenAI");
+        throw new Error('No content generated from AI service');
+      }
+
+      return content;
+    } catch (error: unknown) {
+      console.error('AI Service Error:', error);
+      
+      if (error instanceof Error) {
+        if (error.message?.includes("API key")) {
+          throw new Error('Invalid API key. Please check your OpenAI configuration.');
+        }
+        if (error.message?.includes("quota")) {
+          throw new Error('API quota exceeded. Please try again later.');
+        }
+        throw new Error(`Failed to generate professional summary: ${error.message}`);
       }
       
-      return content;
-    } catch (error) {
-      console.error("Error generating summary:", error);
-      if (error.message?.includes("API key")) {
-        throw new Error("OpenAI API key is not properly configured");
-      }
-      if (error.message?.includes("quota")) {
-        throw new Error("OpenAI API quota exceeded. Please check your account.");
-      }
-      throw new Error(`Failed to generate summary: ${error.message}`);
+      throw new Error('Failed to generate professional summary: Unknown error occurred');
     }
   }
 
-  async generateBulletPoints(jobTitle: string, company: string, responsibilities?: string): Promise<string[]> {
+  async generateBulletPoints(jobTitle: string, company: string, description: string): Promise<string[]> {
     try {
-      this.validateApiKey();
-      
-      if (!jobTitle || !company) {
-        throw new Error("Job title and company are required for bullet point generation");
+      if (!process.env.OPENAI_API_KEY) {
+        throw new Error('OpenAI API key is not configured');
       }
 
-      const prompt = `Generate 3-4 professional bullet points for a ${jobTitle} position at ${company}. 
-      ${responsibilities ? `Current responsibilities: ${responsibilities}` : ""}
-      
-      Each bullet point should:
-      - Start with an action verb
-      - Include quantifiable achievements where possible
-      - Be ATS-friendly
-      - Be specific to the role
-      
-      Respond with a JSON object with a "bulletPoints" array of strings.`;
+      const prompt = `Convert this job description into 3-5 professional bullet points for a resume:
+
+Job Title: ${jobTitle}
+Company: ${company}
+Description: ${description}
+
+Format as bullet points that start with strong action verbs and include quantifiable achievements where possible.`;
 
       const response = await openai.chat.completions.create({
-        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        model: 'gpt-3.5-turbo',
         messages: [
           {
-            role: "system",
-            content: "You are a professional resume writer. Generate bullet points in JSON format."
+            role: 'system',
+            content: 'You are a professional resume writer. Convert job descriptions into impactful bullet points using strong action verbs and quantifiable achievements.'
           },
-          { role: "user", content: prompt }
+          {
+            role: 'user',
+            content: prompt
+          }
         ],
-        response_format: { type: "json_object" },
+        max_tokens: 300,
         temperature: 0.7,
       });
 
-      const content = response.choices[0].message.content;
+      const content = response.choices[0]?.message?.content;
       if (!content) {
-        throw new Error("No content received from OpenAI");
+        throw new Error('No content generated from AI service');
       }
 
-      const result = JSON.parse(content);
-      return result.bulletPoints || [];
-    } catch (error) {
-      console.error("Error generating bullet points:", error);
-      if (error.message?.includes("API key")) {
-        throw new Error("OpenAI API key is not properly configured");
+      // Parse bullet points from the response
+      const bulletPoints = content
+        .split('\n')
+        .filter(line => line.trim().startsWith('•') || line.trim().startsWith('-') || line.trim().startsWith('*'))
+        .map(line => line.replace(/^[•\-*]\s*/, '').trim())
+        .filter(line => line.length > 0);
+
+      return bulletPoints.length > 0 ? bulletPoints : [content.trim()];
+    } catch (error: unknown) {
+      console.error('AI Service Error:', error);
+      
+      if (error instanceof Error) {
+        if (error.message?.includes("API key")) {
+          throw new Error('Invalid API key. Please check your OpenAI configuration.');
+        }
+        if (error.message?.includes("quota")) {
+          throw new Error('API quota exceeded. Please try again later.');
+        }
+        throw new Error(`Failed to generate bullet points: ${error.message}`);
       }
-      if (error.message?.includes("quota")) {
-        throw new Error("OpenAI API quota exceeded. Please check your account.");
-      }
-      throw new Error(`Failed to generate bullet points: ${error.message}`);
+      
+      throw new Error('Failed to generate bullet points: Unknown error occurred');
     }
   }
 
-  async suggestSkills(jobTitle: string, experience?: any[]): Promise<{ technical: string[], soft: string[] }> {
+  async optimizeResume(resumeData: any): Promise<any> {
     try {
-      this.validateApiKey();
-      
-      if (!jobTitle) {
-        throw new Error("Job title is required for skill suggestions");
+      if (!process.env.OPENAI_API_KEY) {
+        throw new Error('OpenAI API key is not configured');
       }
 
-      const prompt = `Suggest relevant technical and soft skills for a ${jobTitle} position.
-      ${experience ? `Based on this experience: ${JSON.stringify(experience)}` : ""}
-      
-      Provide 8-10 technical skills and 5-6 soft skills that are most relevant and in-demand.
-      
-      Respond with a JSON object with "technical" and "soft" arrays.`;
+      const prompt = `Analyze and suggest improvements for this resume:
+${JSON.stringify(resumeData, null, 2)}
+
+Provide specific suggestions for:
+1. Professional summary improvements
+2. Experience section enhancements
+3. Skills optimization
+4. Overall structure recommendations
+
+Return suggestions in JSON format with clear categories.`;
 
       const response = await openai.chat.completions.create({
-        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        model: 'gpt-3.5-turbo',
         messages: [
           {
-            role: "system",
-            content: "You are a career counselor providing skill recommendations."
+            role: 'system',
+            content: 'You are a professional resume consultant. Analyze resumes and provide actionable improvement suggestions.'
           },
-          { role: "user", content: prompt }
-        ],
-        response_format: { type: "json_object" },
-      });
-
-      const result = JSON.parse(response.choices[0].message.content || "{}");
-      return {
-        technical: result.technical || [],
-        soft: result.soft || []
-      };
-    } catch (error) {
-      console.error("Error suggesting skills:", error);
-      if (error.message?.includes("API key")) {
-        throw new Error("OpenAI API key is not properly configured");
-      }
-      if (error.message?.includes("quota")) {
-        throw new Error("OpenAI API quota exceeded. Please check your account.");
-      }
-      throw new Error(`Failed to suggest skills: ${error.message}`);
-    }
-  }
-
-  async calculateATSScore(resumeData: any, jobDescription?: string): Promise<{ score: number, feedback: string[], suggestions: string[] }> {
-    try {
-      this.validateApiKey();
-      
-      if (!resumeData) {
-        throw new Error("Resume data is required for ATS score calculation");
-      }
-
-      const prompt = `Analyze this resume for ATS (Applicant Tracking System) compatibility and provide a score out of 100.
-      ${jobDescription ? `Job Description: ${jobDescription}` : ""}
-      
-      Resume Data: ${JSON.stringify(resumeData)}
-      
-      Consider:
-      - Keyword optimization
-      - Formatting compatibility
-      - Section organization
-      - Content quality
-      - Quantifiable achievements
-      
-      Respond with a JSON object containing:
-      - score: number (0-100)
-      - feedback: array of positive points
-      - suggestions: array of improvement suggestions`;
-
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-        messages: [
           {
-            role: "system",
-            content: "You are an ATS optimization expert analyzing resume compatibility."
-          },
-          { role: "user", content: prompt }
+            role: 'user',
+            content: prompt
+          }
         ],
-        response_format: { type: "json_object" },
-        temperature: 0.3,
+        max_tokens: 500,
+        temperature: 0.7,
       });
 
-      const content = response.choices[0].message.content;
+      const content = response.choices[0]?.message?.content;
       if (!content) {
-        throw new Error("No content received from OpenAI");
+        throw new Error('No content generated from AI service');
       }
 
-      const result = JSON.parse(content);
-      return {
-        score: Math.min(100, Math.max(0, result.score || 75)),
-        feedback: result.feedback || ["Resume structure is well-organized"],
-        suggestions: result.suggestions || ["Consider adding more quantifiable achievements"]
-      };
-    } catch (error) {
-      console.error("Error calculating ATS score:", error);
-      if (error.message?.includes("API key")) {
-        throw new Error("OpenAI API key is not properly configured");
+      try {
+        return JSON.parse(content);
+      } catch {
+        // If JSON parsing fails, return structured text response
+        return {
+          suggestions: content,
+          type: 'text'
+        };
       }
-      if (error.message?.includes("quota")) {
-        throw new Error("OpenAI API quota exceeded. Please check your account.");
+
+    } catch (error: unknown) {
+      console.error('AI Service Error:', error);
+      
+      if (error instanceof Error) {
+        if (error.message?.includes("API key")) {
+          throw new Error('Invalid API key. Please check your OpenAI configuration.');
+        }
+        if (error.message?.includes("quota")) {
+          throw new Error('API quota exceeded. Please try again later.');
+        }
+        throw new Error(`Failed to optimize resume: ${error.message}`);
       }
-      throw new Error(`Failed to calculate ATS score: ${error.message}`);
+      
+      throw new Error('Failed to optimize resume: Unknown error occurred');
     }
   }
 }

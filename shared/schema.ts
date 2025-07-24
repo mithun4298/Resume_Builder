@@ -1,6 +1,5 @@
 import {
   pgTable,
-  text,
   varchar,
   timestamp,
   jsonb,
@@ -8,7 +7,7 @@ import {
   serial,
   boolean,
 } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Session storage table.
@@ -45,6 +44,19 @@ export const resumes = pgTable("resumes", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// Create Zod schemas from Drizzle tables
+export const insertUserSchema = createInsertSchema(users);
+export const selectUserSchema = createSelectSchema(users);
+export const insertResumeSchema = createInsertSchema(resumes);
+export const selectResumeSchema = createSelectSchema(resumes);
+
+// Export types
+export type User = z.infer<typeof selectUserSchema>;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UpsertUser = Omit<InsertUser, 'createdAt' | 'updatedAt'>;
+export type Resume = z.infer<typeof selectResumeSchema>;
+export type InsertResume = z.infer<typeof insertResumeSchema>;
 
 export const resumeSchema = z.object({
   personalInfo: z.object({
@@ -96,25 +108,9 @@ export const resumeSchema = z.object({
     "experience",
     "skills",
     "education",
-    "certifications",
-    "projects"
+    "projects",
+    "certifications"
   ])).optional(),
 });
 
-export const insertResumeSchema = createInsertSchema(resumes).pick({
-  title: true,
-  data: true,
-  templateId: true,
-  isPublic: true,
-});
-
-export type UpsertUser = typeof users.$inferInsert;
-export type User = Omit<typeof users.$inferSelect, 'email' | 'firstName' | 'lastName' | 'profileImageUrl'> & {
-  email?: string;
-  firstName?: string;
-  lastName?: string;
-  profileImageUrl?: string;
-};
-export type Resume = typeof resumes.$inferSelect;
-export type InsertResume = z.infer<typeof insertResumeSchema>;
 export type ResumeData = z.infer<typeof resumeSchema>;

@@ -1,15 +1,49 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
+import { debounce } from 'lodash';
 
-export function useAutoSave<T>(value: T, key: string, delay = 1000) {
-  const timer = useRef<NodeJS.Timeout | null>(null);
+interface UseAutoSaveOptions {
+  delay?: number;
+  onSave: (data: any) => Promise<void>;
+  onError?: (error: Error) => void;
+}
+
+export const useAutoSave = <T>(
+  data: T,
+  options: UseAutoSaveOptions
+) => {
+  const { delay = 2000, onSave, onError } = options;
+  const lastSavedData = useRef<T>();
+  const saveTimeoutRef = useRef<NodeJS.Timeout>();
+
+  const debouncedSave = useCallback(
+    debounce(async (dataToSave: T) => {
+      try {
+        await onSave(dataToSave);
+        lastSavedData.current = dataToSave;
+      } catch (error) {
+        onError?.(error as Error);
+      }
+    }, delay),
+    [onSave, onError, delay]
+  );
 
   useEffect(() => {
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      localStorage.setItem(key, JSON.stringify(value));
-    }, delay);
+    // Only save if data has actually changed
+    if (JSON.stringify(data) !== JSON.stringify(lastSavedData.current)) {
+      debouncedSave(data);
+    }
+
     return () => {
-      if (timer.current) clearTimeout(timer.current);
+      debouncedSave.cancel();
     };
-  }, [value, key, delay]);
-}
+  }, [data, debouncedSave]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
+};

@@ -1,9 +1,10 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
-import * as schema from "@shared/schema";
+import { drizzle } from 'drizzle-orm/postgres-js';
+import * as schema from './db/schema';
+import postgres from 'postgres';
+import { neonConfig } from '@neondatabase/serverless';
+// Remove unused ws import
 
-neonConfig.webSocketConstructor = ws;
+neonConfig.webSocketConstructor = WebSocket;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -11,5 +12,23 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
+// Database connection
+const connectionString = process.env.DATABASE_URL || 'postgresql://localhost:5432/resume_builder';
+
+// Create the connection
+const client = postgres(connectionString, {
+  // redacted
+});
+
+// Create drizzle instance
+export const db = drizzle(client, { schema });
+
+// Test database connection
+export async function testConnection() {
+  // redacted
+}
+
+// Initialize database (create tables if they don't exist)
+export async function initializeDatabase() {
+  // redacted
+}

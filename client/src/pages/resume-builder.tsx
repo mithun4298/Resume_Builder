@@ -1,12 +1,14 @@
-import { Button } from "@/components/ui/button";
-import Header from "@/components/Header";
+import React from 'react';
+import { ResumeBuilder } from '../components/ResumeBuilder';
+// import { ResumeDataProvider } from '../hooks/useResumeData';
+import { Button, Header } from "@/components";
 import { useLocation } from "wouter";
 
-export default function ResumeBuilder() {
+export const ResumeBuilderPage: React.FC = () => {
   const [, navigate] = useLocation();
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gray-50">
       <Header />
       <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
         <div className="text-center">
@@ -26,4 +28,6 @@ export default function ResumeBuilder() {
       </div>
     </div>
   );
-}
+};
+
+export default ResumeBuilderPage;

@@ -10,8 +10,9 @@ export { Layout, LayoutWithCustomHeader } from './Layout';
 
 // UI Components
 export { Button } from './ui/button';
-export { Toaster } from './ui/toaster';
-export { Collapsible, CollapsibleTrigger, CollapsibleContent } from './ui/collapsible';
+// export { Toaster } from './ui/toaster';
+// export { Card, CardHeader, CardContent } from './ui/card';
+// export { Collapsible, CollapsibleTrigger, CollapsibleContent } from './ui/collapsible';
 
 // Resume Templates
 export { default as ModernTemplate } from './resume-templates/ModernTemplate';
