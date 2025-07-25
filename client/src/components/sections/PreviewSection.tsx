@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useResumeData } from '../../hooks/useResumeData';
+import { downloadResumePDF } from '../ResumePDF';
 import { cn } from '@/lib/utils';
 
 interface PreviewSectionProps {
@@ -20,23 +21,19 @@ export const PreviewSection: React.FC<PreviewSectionProps> = ({
     { id: 'minimal', name: 'Minimal', preview: '📃' }
   ];
 
-  const handleDownloadPDF = async () => {
-    setIsGeneratingPDF(true);
-    try {
-      // Simulate PDF generation - replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      // Create a download link
-      const link = document.createElement('a');
-      link.href = '#'; // Replace with actual PDF URL
-      link.download = `${resumeData.personalInfo.firstName}_${resumeData.personalInfo.lastName}_Resume.pdf`;
-      link.click();
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-    } finally {
-      setIsGeneratingPDF(false);
-    }
-  };
+// Update the handleDownloadPDF function:
+
+const handleDownloadPDF = async () => {
+  setIsGeneratingPDF(true);
+  try {
+    await downloadResumePDF(resumeData, selectedTemplate);
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    alert('Failed to generate PDF. Please try again.');
+  } finally {
+    setIsGeneratingPDF(false);
+  }
+};
 
   const handleShareResume = async () => {
     if (navigator.share) {
@@ -68,6 +65,32 @@ export const PreviewSection: React.FC<PreviewSectionProps> = ({
 
     return Math.round((completed / total) * 100);
   };
+
+  // Add this function to get preview styles:
+
+const getPreviewStyles = (template: string) => {
+  const baseClasses = "bg-gray-50 border border-gray-200 rounded-lg p-6 space-y-4 max-h-96 overflow-y-auto";
+  
+  const templateClasses = {
+    modern: `${baseClasses} border-blue-200`,
+    classic: `${baseClasses} border-gray-800`,
+    creative: `${baseClasses} border-purple-200 bg-purple-50`,
+    minimal: `${baseClasses} border-gray-100`,
+  };
+  
+  return templateClasses[selectedTemplate] || templateClasses.modern;
+};
+
+const getHeaderStyles = (template: string) => {
+  const templateStyles = {
+    modern: "text-center border-b-2 border-blue-500 pb-4 bg-blue-600 text-white p-4 rounded-t-lg -m-6 mb-4",
+    classic: "text-center border-b-4 border-black pb-4",
+    creative: "text-center border-b-2 border-purple-500 pb-4 bg-purple-600 text-white p-4 rounded-t-lg -m-6 mb-4",
+    minimal: "text-left border-b border-gray-300 pb-4",
+  };
+  
+  return templateStyles[template] || templateStyles.modern;
+};
 
   return (
     <div className="preview-section space-y-6 pb-24">
@@ -153,11 +176,11 @@ export const PreviewSection: React.FC<PreviewSectionProps> = ({
       </div>
 
       {/* Resume Preview */}
-      <div className="bg-white border-2 border-gray-200 rounded-xl p-6">
+      <div className={getPreviewStyles(selectedTemplate)}>
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Resume Preview</h3>
         
         {/* Mock Resume Preview */}
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 space-y-4 max-h-96 overflow-y-auto">
+        <div className={getHeaderStyles(selectedTemplate)}>
           {/* Header */}
           <div className="text-center border-b border-gray-300 pb-4">
             <h1 className="text-2xl font-bold text-gray-900">
@@ -243,6 +266,32 @@ export const PreviewSection: React.FC<PreviewSectionProps> = ({
         </div>
       </div>
 
+      {/* Download Section */}
+      <div className="bg-white border-2 border-gray-200 rounded-xl p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Download Resume</h3>
+        <button
+          onClick={handleDownloadPDF}
+          disabled={isGeneratingPDF}
+          className={`w-full px-4 py-3 rounded-xl font-semibold transition-all duration-200 ${
+            isGeneratingPDF
+              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+              : "bg-blue-600 text-white hover:bg-blue-700"
+          }`}
+        >
+          {isGeneratingPDF ? (
+            <div className="flex items-center justify-center space-x-2">
+              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              <span>Generating PDF...</span>
+            </div>
+          ) : (
+            "📄 Download PDF"
+          )}
+        </button>
+      </div>
+
       {/* Action Buttons */}
       <div className="space-y-4">
         <button
@@ -250,13 +299,6 @@ export const PreviewSection: React.FC<PreviewSectionProps> = ({
           className="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
         >
           Previous
-        </button>
-        <button
-          onClick={handleDownloadPDF}
-          className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          disabled={isGeneratingPDF}
-        >
-          {isGeneratingPDF ? 'Generating PDF...' : 'Download PDF'}
         </button>
         <button
           onClick={handleShareResume}

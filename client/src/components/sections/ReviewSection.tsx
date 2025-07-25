@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useResumeData } from '@/hooks/useResumeData';
+import { downloadResumePDF } from '../ResumePDF';
 
 interface ReviewSectionProps {
   onNext: () => void;
@@ -15,16 +16,18 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
   const { resumeData } = useResumeData();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
-  const generatePDF = async () => {
-    setIsGeneratingPDF(true);
-    try {
-      const response = await fetch('/api/generate-pdf', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(resumeData),
-      });
+  // Update the generatePDF function:
+const generatePDF = async () => {
+  setIsGeneratingPDF(true);
+  try {
+    await downloadResumePDF(resumeData, resumeData.selectedTemplate);
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    alert('Failed to generate PDF. Please try again.');
+  } finally {
+    setIsGeneratingPDF(false);
+  }
+};
 
       if (response.ok) {
         const blob = await response.blob();
