@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, createContext, useContext, ReactNode } from 'react';
+import  { useState, useCallback, useEffect, createContext, useContext, ReactNode } from 'react';
 
 export interface PersonalInfo {
   firstName: string;

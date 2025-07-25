@@ -220,12 +220,13 @@ export default function Templates() {
       });
     },
     onSuccess: async (response) => {
-      const resume = await response.json();
-      console.log(resume.id);
+      const resJson = await response.json();
+const resumeId = resJson?.data?.resume?.id;
+      console.log(resumeId);
       queryClient.invalidateQueries({ queryKey: ["/api/resumes"] });
       setTimeout(() => {
     console.log('🔍 Actually navigating now...');
-    navigate(`/resume-builder?id=${resume.id}`);
+    navigate(`/resume-builder?id=${resumeId}`);
   }, 100);
      // navigate(`/resume-builder?id=${resume.id}`);
       toast({

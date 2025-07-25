@@ -37,6 +37,9 @@ const Home: React.FC = () => {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const queryClient = useQueryClient();
   const [newResumeTitle, setNewResumeTitle] = useState("");
+  const [newFirstName, setNewFirstName] = useState("");
+  const [newLastName, setNewLastName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // Redirect to login if not authenticated
@@ -152,18 +155,27 @@ const Home: React.FC = () => {
 
   const createResumeMutation = useMutation({
     mutationFn: async (title: string) => {
+      // Create a default resume data object and inject the entered personal info
+      const resumeData = createDefaultResumeData();
+      resumeData.personalInfo.firstName = newFirstName;
+      resumeData.personalInfo.lastName = newLastName;
+      resumeData.personalInfo.email = newEmail;
       return await apiRequest("POST", "/api/resumes", {
         title,
-        data: createDefaultResumeData(),
+        data: resumeData,
         ...defaultResumeSettings,
       });
     },
     onSuccess: async (response) => {
-      const resume = await response.json();
+      const resJson = await response.json();
+      const resumeId = resJson?.data?.resume?.id;
       queryClient.invalidateQueries({ queryKey: ["/api/resumes"] });
       setDialogOpen(false);
       setNewResumeTitle("");
-      navigate(`/resume-builder?id=${resume.id}`);
+      setNewFirstName("");
+      setNewLastName("");
+      setNewEmail("");
+      navigate(`/resume-builder?id=${resumeId}`);
       toast({
         title: "Success",
         description: "New resume created successfully!",
@@ -276,9 +288,43 @@ const Home: React.FC = () => {
                             placeholder="e.g., Software Engineer Resume"
                           />
                         </div>
+                        <div>
+                          <Label htmlFor="firstName">First Name</Label>
+                          <Input
+                            id="firstName"
+                            value={newFirstName}
+                            onChange={(e) => setNewFirstName(e.target.value)}
+                            placeholder="e.g., John"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="lastName">Last Name</Label>
+                          <Input
+                            id="lastName"
+                            value={newLastName}
+                            onChange={(e) => setNewLastName(e.target.value)}
+                            placeholder="e.g., Doe"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="email">Email</Label>
+                          <Input
+                            id="email"
+                            type="email"
+                            value={newEmail}
+                            onChange={(e) => setNewEmail(e.target.value)}
+                            placeholder="e.g., john.doe@email.com"
+                          />
+                        </div>
                         <Button 
                           onClick={() => createResumeMutation.mutate(newResumeTitle)}
-                          disabled={!newResumeTitle.trim() || createResumeMutation.isPending}
+                          disabled={
+                            !newResumeTitle.trim() ||
+                            !newFirstName.trim() ||
+                            !newLastName.trim() ||
+                            !newEmail.trim() ||
+                            createResumeMutation.isPending
+                          }
                           className="w-full"
                         >
                           {createResumeMutation.isPending ? "Creating..." : "Create Resume"}
