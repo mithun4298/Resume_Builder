@@ -1,5 +1,6 @@
 import { db } from './db';
 import { users, resumes, type User, type UpsertUser, type Resume, type InsertResume } from '../shared/schema.js';
+import { eq, and } from 'drizzle-orm';
 
 export interface IStorage {
   // User operations

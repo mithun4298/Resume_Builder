@@ -54,19 +54,33 @@ const Home: React.FC = () => {
     }
   }, [isAuthenticated, authLoading, toast]);
 
-  const { data: serverResumes, isLoading: resumesLoading } = useQuery<Resume[]>({
+  const { data: serverResumes, isLoading: resumesLoading, refetch } = useQuery<Resume[]>({
     queryKey: ["/api/resumes/user/all"],
     queryFn: async () => {
-      console.log("[Dashboard] Fetching /api/resumes/user/all...");
       const res = await apiRequest("GET", "/api/resumes/user/all");
-      console.log("[Dashboard] Response status:", res.status);
       const json = await res.json();
-      console.log("[Dashboard] Response JSON:", json);
-      // Support both {resumes: Resume[]} and direct Resume[] for backward compatibility
-      return Array.isArray(json) ? json : json.resumes || [];
+      let resumesArr = [];
+      if (Array.isArray(json)) {
+        resumesArr = json;
+      } else if (Array.isArray(json.resumes)) {
+        resumesArr = json.resumes;
+      } else if (Array.isArray(json.data)) {
+        resumesArr = json.data;
+      } else if (json.data && Array.isArray(json.data.resumes)) {
+        resumesArr = json.data.resumes;
+      }
+      return resumesArr;
     },
     retry: false,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
+
+  // Force refetch on mount for debugging
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
   // Load local draft from localStorage (check both keys for compatibility)
   const [localDraft, setLocalDraft] = useState<any | null>(null);
@@ -87,26 +101,22 @@ const Home: React.FC = () => {
     } catch {}
   }, []);
 
-  // Merge local draft with server resumes (if not already present)
+  // Always show both local draft and server resumes (even if titles match)
   let resumes = serverResumes || [];
   if (localDraft) {
-    const exists = resumes.some(r => r.title === localDraft.title);
-    if (!exists) {
-      resumes = [
-        {
-          id: "local-draft",
-          title: localDraft.title,
-          templateId: localDraft.templateId || "",
-          updatedAt: new Date().toISOString(),
-          status: "draft",
-          downloadCount: 0,
-          isLocalDraft: true,
-        },
-        ...resumes,
-      ];
-    }
+    resumes = [
+      {
+        id: "local-draft",
+        title: localDraft.title,
+        templateId: localDraft.templateId || "",
+        updatedAt: new Date().toISOString(),
+        status: "draft",
+        downloadCount: 0,
+        isLocalDraft: true,
+      },
+      ...resumes,
+    ];
   }
-  console.log("[Dashboard] Final resumes to display:", resumes);
 
   const deleteResumeMutation = useMutation({
     mutationFn: async (resumeId: string) => {

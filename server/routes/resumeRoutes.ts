@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { storage } from '../storage';
+import { isAuthenticated } from '../replitAuth';
 
 const router = Router();
 
@@ -120,17 +121,16 @@ interface SuccessResponse<T = any> {
   message?: string;
 }
 
-// Optional auth middleware
-const optionalAuth = (req: AuthenticatedRequest, _res: Response, next: NextFunction): void => {
-  if (!req.user) {
-    req.user = {
-      id: 'anonymous',
-      email: 'anonymous@example.com',
-      name: 'Anonymous User'
-    };
+// Auth middleware: require login for all resume routes
+router.use(isAuthenticated);
+
+// Patch: Copy session user to req.user for downstream handlers
+router.use((req, _res, next) => {
+  if (req.session && req.session.user) {
+    req.user = req.session.user;
   }
   next();
-};
+});
 
 // Helper functions
 const sendError = (res: Response, status: number, error: string, details?: any): void => {
@@ -158,8 +158,7 @@ const parseIdParam = (idParam: string | undefined): number | null => {
   return isNaN(id) ? null : id;
 };
 
-// Apply optional auth to all routes
-router.use(optionalAuth);
+
 
 // SPECIFIC ROUTES FIRST (before parameterized routes)
 
