@@ -221,11 +221,16 @@ export default function Templates() {
     },
     onSuccess: async (response) => {
       const resume = await response.json();
+      console.log(resume.id);
       queryClient.invalidateQueries({ queryKey: ["/api/resumes"] });
-      navigate(`/resume/${resume.id}`);
+      setTimeout(() => {
+    console.log('🔍 Actually navigating now...');
+    navigate(`/resume-builder?id=${resume.id}`);
+  }, 100);
+     // navigate(`/resume-builder?id=${resume.id}`);
       toast({
         title: "Success",
-        description: "New resume created successfully!",
+        description: "New resume  created successfully!",
       });
     },
     onError: () => {

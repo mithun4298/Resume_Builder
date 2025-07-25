@@ -13,12 +13,14 @@ import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import StatsCard from "@/components/StatsCard";
-import QuickActionCard from "@/components/QuickActionCard";
+import QuickActionsWidget from "@/components/QuickActionsWidget";
 import ResumeCard from "@/components/ResumeCard";
 import ResumeCardSkeleton from "@/components/ResumeCardSkeleton";
 import EmptyState from "@/components/EmptyState";
 import { Plus, FileText, Calendar, Download, Edit, Trash2, Eye, Clock, Star, TrendingUp, Users, Award } from "lucide-react";
 import type { Resume as SharedResume } from "@shared/schema";
+
+console.log('Home component loaded');
 
 interface Resume {
   id: string;
@@ -102,10 +104,11 @@ export default function Home() {
       queryClient.invalidateQueries({ queryKey: ["/api/resumes"] });
       setDialogOpen(false);
       setNewResumeTitle("");
-      navigate(`/resume/${resume.id}`);
+      navigate(`/resume-builder?id=${resume.id}`);
       toast({
         title: "Success",
         description: "New resume created successfully!",
+        duration: 3000
       });
     },
     onError: (error) => {
@@ -257,30 +260,14 @@ export default function Home() {
             />
           </div>
 
-          {/* Quick Actions */}
-          <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <QuickActionCard
-                icon={<Plus className="w-5 h-5" />}
-                title="Create Resume"
-                description="Start building a new resume from scratch"
-                onClick={() => setDialogOpen(true)}
-              />
-              <QuickActionCard
-                icon={<FileText className="w-5 h-5" />}
-                title="Browse Templates"
-                description="Explore our collection of professional templates"
-                onClick={() => navigate('/templates')}
-              />
-              <QuickActionCard
-                icon={<Users className="w-5 h-5" />}
-                title="AI Assistant"
-                description="Get help writing compelling content"
-                onClick={() => toast({ title: "Coming Soon", description: "AI Assistant feature is in development!" })}
-              />
-            </div>
-          </div>
+
+          
+          {/* Quick Actions - Now Floating */}
+          <QuickActionsWidget 
+            onCreateResume={() => setDialogOpen(true)}
+            onBrowseTemplates={() => navigate('/templates')}
+            onAIAssistant={() => toast({ title: "Coming Soon", description: "AI Assistant feature is in development!" })}
+          />
 
           {/* Resumes Grid */}
           {isLoading ? (
@@ -295,7 +282,7 @@ export default function Home() {
                 <ResumeCard
                   key={resume.id}
                   resume={resume}
-                  onEdit={() => navigate(`/resume/${resume.id}`)}
+                  onEdit={() => navigate(`/resume-builder?id=${resume.id}`)}
                   onDelete={() => handleDeleteResume(resume.id)}
                   onDownload={() => handleDownloadResume(resume.id)}
                   onPreview={() => handlePreviewResume(resume.id)}

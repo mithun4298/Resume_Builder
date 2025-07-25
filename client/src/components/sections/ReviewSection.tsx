@@ -44,46 +44,51 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
     }
   };
 
-  const completionPercentage = () => {
-    let completed = 0;
-    let total = 6;
-
-    if (resumeData.personalInfo.firstName && resumeData.personalInfo.lastName) completed++;
-    if (resumeData.summary && resumeData.summary.trim().length > 0) {
-      completed++;
-    }
-    if (resumeData.experiences.length > 0) completed++;
-    if (resumeData.education.length > 0) completed++;
-    if (resumeData.skills.length > 0) completed++;
-    if (resumeData.selectedTemplate) completed++;
-
-    return Math.round((completed / total) * 100);
-  };
-
   const getSectionStatus = (section: string) => {
     switch (section) {
       case 'personal':
-        return resumeData.personalInfo.firstName && resumeData.personalInfo.lastName ? 'complete' : 'incomplete';
+        // Check if required personal info fields are filled
+        return (
+          resumeData.personalInfo.firstName?.trim() &&
+          resumeData.personalInfo.lastName?.trim() &&
+          resumeData.personalInfo.email?.trim() &&
+          resumeData.personalInfo.phone?.trim()
+        ) ? 'complete' : 'incomplete';
+        
       case 'summary':
-        return resumeData.summary ? 'complete' : 'incomplete';
+        // Check if summary exists and has minimum word count
+        const summaryText = resumeData.summary?.trim() || '';
+        const wordCount = summaryText.split(/\s+/).filter(word => word.length > 0).length;
+        return summaryText && wordCount >= 20 ? 'complete' : 'incomplete';
+        
       case 'experience':
-        return resumeData.experiences.length > 0 ? 'complete' : 'incomplete';
+        return resumeData.experiences && resumeData.experiences.length > 0 ? 'complete' : 'incomplete';
+        
       case 'education':
-        return resumeData.education.length > 0 ? 'complete' : 'incomplete';
+        return resumeData.education && resumeData.education.length > 0 ? 'complete' : 'incomplete';
+        
       case 'skills':
-        return resumeData.skills.length > 0 ? 'complete' : 'incomplete';
+        return resumeData.skills && resumeData.skills.length >= 3 ? 'complete' : 'incomplete';
+        
       case 'template':
         return resumeData.selectedTemplate ? 'complete' : 'incomplete';
+        
       default:
         return 'incomplete';
     }
+  };
+
+  const completionPercentage = () => {
+    const sections = ['personal', 'summary', 'experience', 'education', 'skills', 'template'];
+    const completedSections = sections.filter(section => getSectionStatus(section) === 'complete');
+    return Math.round((completedSections.length / sections.length) * 100);
   };
 
   const sections = [
     {
       id: 'personal',
       name: 'Personal Information',
-      description: `${resumeData.personalInfo.firstName} ${resumeData.personalInfo.lastName}`,
+      description: `${resumeData.personalInfo.firstName} ${resumeData.personalInfo.lastName}, ${resumeData.personalInfo.email}, ${resumeData.personalInfo.phone}`,
       icon: '👤'
     },
     {
@@ -97,7 +102,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
     {
       id: 'experience',
       name: 'Work Experience',
-      description: `${resumeData.experiences.length} position${resumeData.experiences .length !== 1 ? 's' : ''} added`,
+      description: `${resumeData.experiences.length} position${resumeData.experiences.length !== 1 ? 's' : ''} added`,
       icon: '💼'
     },
     {
@@ -116,7 +121,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
       id: 'template',
       name: 'Template',
       description: resumeData.selectedTemplate ? 
-        `${resumeData.selectedTemplate.charAt(0).toUpperCase() + resumeData.selectedTemplate.slice(1)} template selected` :
+        `${.charAt(0).toUpperCase() + resumeData.selectedTemplate.slice(1)} template selected` :
         'No template selected',
       icon: '🎨'
     }

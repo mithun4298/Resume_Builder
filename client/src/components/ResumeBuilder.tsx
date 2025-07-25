@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PersonalInfoSection } from './sections/PersonalInfoSection';
 import { ExperienceSection } from './sections/ExperienceSection';
 import { EducationSection } from './sections/EducationSection';
@@ -7,8 +7,9 @@ import { SummarySection } from './sections/SummarySection';
 import { PreviewSection } from './sections/PreviewSection';
 import { useResumeData } from '../hooks/useResumeData';
 import { cn } from '@/lib/utils';
+import QuickJumpSidebar from './QuickJumpSidebar'; // Add this import
 
-type ResumeStep = 'personal' | 'summary' | 'experience' | 'education' | 'skills' | 'preview';
+type ResumeStep = 'personal' | 'summary' | 'experience' | 'education' | 'skills' | 'certifications' | 'projects' | 'preview';
 
 const RESUME_STEPS: { key: ResumeStep; label: string; icon: string }[] = [
   { key: 'personal', label: 'Personal Info', icon: '👤' },
@@ -16,11 +17,19 @@ const RESUME_STEPS: { key: ResumeStep; label: string; icon: string }[] = [
   { key: 'experience', label: 'Experience', icon: '💼' },
   { key: 'education', label: 'Education', icon: '🎓' },
   { key: 'skills', label: 'Skills', icon: '⚡' },
+  { key: 'certifications', label: 'Certifications', icon: '🏆' },
+  { key: 'projects', label: 'Projects', icon: '📁' },
   { key: 'preview', label: 'Preview', icon: '👁️' }
 ];
 
-export const ResumeBuilder: React.FC = () => {
+interface ResumeBuilderProps {
+  resumeId?: string | null;
+}
+
+export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ resumeId }) => {
   const [currentStep, setCurrentStep] = useState<ResumeStep>('personal');
+  const [completedSteps, setCompletedSteps] = useState<string[]>([]); // Add this state
+  
   const { 
     resumeData, 
     addExperience, 
@@ -34,6 +43,71 @@ export const ResumeBuilder: React.FC = () => {
     deleteSkill
   } = useResumeData();
 
+  // Function to mark a step as completed
+  const markStepCompleted = (step: string) => {
+    setCompletedSteps(prev => {
+      if (!prev.includes(step)) {
+        return [...prev, step];
+      }
+      return prev;
+    });
+  };
+
+  // Function to check if step has required data (you can customize this logic)
+  const checkStepCompletion = () => {
+    const newCompletedSteps: string[] = [];
+
+    // Check Personal Info
+    if (resumeData.personalInfo?.firstName && resumeData.personalInfo?.lastName && resumeData.personalInfo?.email) {
+      newCompletedSteps.push('personal');
+    }
+
+    // Check Summary
+    if (resumeData.summary && resumeData.summary.trim().length > 0) {
+      newCompletedSteps.push('summary');
+    }
+
+    // Check Experience
+    if (resumeData.experiences && resumeData.experiences.length > 0) {
+      newCompletedSteps.push('experience');
+    }
+
+    // Check Education
+    if (resumeData.education && resumeData.education.length > 0) {
+      newCompletedSteps.push('education');
+    }
+
+    // Check Skills
+    if (resumeData.skills && (resumeData.skills.technical?.length > 0 || resumeData.skills.soft?.length > 0)) {
+      newCompletedSteps.push('skills');
+    }
+
+    // Check Certifications
+    if (resumeData.certifications && resumeData.certifications.length > 0) {
+      newCompletedSteps.push('certifications');
+    }
+
+    // Check Projects
+    if (resumeData.projects && resumeData.projects.length > 0) {
+      newCompletedSteps.push('projects');
+    }
+
+    setCompletedSteps(newCompletedSteps);
+  };
+
+  // Check completion status whenever resumeData changes
+  useEffect(() => {
+    checkStepCompletion();
+  }, [resumeData]);
+
+  useEffect(() => {
+    if (resumeId) {
+      console.log('Loading resume with ID:', resumeId);
+      // Here you would typically load the resume data from an API
+      // For now, we'll just log it
+    }
+  }, [resumeId]);
+
   const getCurrentStepIndex = () => {
     return RESUME_STEPS.findIndex(step => step.key === currentStep);
   };
@@ -41,14 +115,16 @@ export const ResumeBuilder: React.FC = () => {
   const handleNext = () => {
     const currentIndex = getCurrentStepIndex();
     if (currentIndex < RESUME_STEPS.length - 1) {
-      setCurrentStep(RESUME_STEPS[currentIndex + 1].key);
+      const nextStep = RESUME_STEPS[currentIndex + 1].key as ResumeStep;
+      setCurrentStep(nextStep);
     }
   };
 
   const handlePrevious = () => {
     const currentIndex = getCurrentStepIndex();
     if (currentIndex > 0) {
-      setCurrentStep(RESUME_STEPS[currentIndex - 1].key);
+      const prevStep = RESUME_STEPS[currentIndex - 1].key as ResumeStep;
+      setCurrentStep(prevStep);
     }
   };
 
@@ -65,7 +141,7 @@ export const ResumeBuilder: React.FC = () => {
       case 'experience':
         return (
           <ExperienceSection
-            experiences={resumeData.experience}
+            experiences={resumeData.experiences}
             onAdd={addExperience}
             onUpdate={updateExperience}
             onDelete={deleteExperience}
@@ -94,6 +170,54 @@ export const ResumeBuilder: React.FC = () => {
             onNext={handleNext}
             onPrevious={handlePrevious}
           />
+        );
+      case 'certifications':
+        return (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Certifications</h2>
+            <p className="text-gray-600 mb-8">Add your professional certifications and licenses.</p>
+            <div className="text-center py-12">
+              <p className="text-gray-500">Certifications section coming soon...</p>
+            </div>
+            <div className="flex justify-between mt-8">
+              <button
+                onClick={handlePrevious}
+                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                Previous
+              </button>
+              <button
+                onClick={handleNext}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        );
+      case 'projects':
+        return (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Projects</h2>
+            <p className="text-gray-600 mb-8">Showcase your notable projects and achievements.</p>
+            <div className="text-center py-12">
+              <p className="text-gray-500">Projects section coming soon...</p>
+            </div>
+            <div className="flex justify-between mt-8">
+              <button
+                onClick={handlePrevious}
+                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                Previous
+              </button>
+              <button
+                onClick={handleNext}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         );
       case 'preview':
         return <PreviewSection onPrevious={handlePrevious} />;
@@ -125,13 +249,13 @@ export const ResumeBuilder: React.FC = () => {
           <div className="flex items-center space-x-2 overflow-x-auto">
             {RESUME_STEPS.map((step, index) => {
               const isActive = step.key === currentStep;
-              const isCompleted = index < getCurrentStepIndex();
-              const isClickable = index <= getCurrentStepIndex();
+              const isCompleted = completedSteps.includes(step.key);
+              const isClickable = true; // Allow clicking any step
 
               return (
                 <button
                   key={step.key}
-                  onClick={() => isClickable && handleStepClick(step.key)}
+                  onClick={() => isClickable && handleStepClick(step.key as ResumeStep)}
                   disabled={!isClickable}
                   className={cn(
                     "flex items-center space-x-2 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 whitespace-nowrap",
@@ -155,7 +279,10 @@ export const ResumeBuilder: React.FC = () => {
 
           {/* Progress Line */}
           <div className="h-1 bg-gray-200 relative mt-2">
-            <div className="absolute left-0 top-0 h-full bg-blue-600" style={{ width: `${(getCurrentStepIndex() / (RESUME_STEPS.length - 1)) * 100}%` }}></div>
+            <div 
+              className="absolute left-0 top-0 h-full bg-blue-600 transition-width duration-300"
+              style={{ width: `${(getCurrentStepIndex() / (RESUME_STEPS.length - 1)) * 100}%` }}
+            ></div>
           </div>
         </div>
       </div>
@@ -165,24 +292,15 @@ export const ResumeBuilder: React.FC = () => {
         {renderCurrentStep()}
       </div>
 
+      
       {/* Quick Navigation (Desktop) */}
       <div className="hidden lg:block fixed right-6 top-1/2 transform -translate-y-1/2">
-        <div className="bg-white rounded-xl shadow-lg p-4 space-y-2">
-          <h4 className="text-sm font-semibold text-gray-700 mb-3">Quick Jump</h4>
-          {RESUME_STEPS.map((step, index) => (
-            <button
-              key={step.key}
-              onClick={() => setCurrentStep(step.key)}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
-                currentStep === step.key
-                  ? 'bg-blue-100 text-blue-700 font-medium'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              {index + 1}. {step.label}
-            </button>
-          ))}
-        </div>
+        <QuickJumpSidebar 
+          steps={RESUME_STEPS} 
+          currentStep={currentStep}  
+          onStepClick={handleStepClick}
+          completedSteps={completedSteps}
+        />
       </div>
 
       {/* Mobile Section Navigation */}

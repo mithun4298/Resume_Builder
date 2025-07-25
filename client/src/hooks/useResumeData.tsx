@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, createContext, useContext, ReactNode } from 'react';
 
 export interface PersonalInfo {
   firstName: string;
@@ -70,6 +70,70 @@ export interface ResumeData {
   certifications: Certification[];
   selectedTemplate: string;
 }
+
+// Create the context type
+type ResumeDataContextType = {
+  // State
+  resumeData: ResumeData;
+  isLoading: boolean;
+  lastSaved: Date | null;
+  
+  // Personal Info
+  updatePersonalInfo: (updates: Partial<PersonalInfo>) => void;
+  
+  // Summary
+  updateSummary: (summary: string) => void;
+  
+  // Experience
+  addExperience: (experience: Omit<Experience, 'id'>) => string;
+  updateExperience: (id: string, updates: Partial<Experience>) => void;
+  deleteExperience: (id: string) => void;
+  reorderExperiences: (experiences: Experience[]) => void;
+  
+  // Education
+  addEducation: (education: Omit<Education, 'id'>) => string;
+  updateEducation: (id: string, updates: Partial<Education>) => void;
+  deleteEducation: (id: string) => void;
+  
+  // Skills
+  addSkill: (skill: Omit<Skill, 'id'>) => string;
+  updateSkill: (id: string, updates: Partial<Skill>) => void;
+  deleteSkill: (id: string) => void;
+  bulkAddSkills: (skills: string[]) => void;
+  bulkDeleteSkills: (skillIds: string[]) => void;
+  
+  // Projects
+  addProject: (project: Omit<Project, 'id'>) => string;
+  updateProject: (id: string, updates: Partial<Project>) => void;
+  deleteProject: (id: string) => void;
+  
+  // Certifications
+  addCertification: (certification: Omit<Certification, 'id'>) => string;
+  updateCertification: (id: string, updates: Partial<Certification>) => void;
+  deleteCertification: (id: string) => void;
+  
+  // Template
+  selectTemplate: (templateId: string) => void;
+  
+  // Data Management
+  clearResumeData: () => void;
+  exportData: () => string;
+  importData: (jsonData: string) => boolean;
+  
+  // Validation & Stats
+  validateResumeData: () => { isValid: boolean; errors: string[] };
+  getCompletionPercentage: () => number;
+  getResumeStats: () => any;
+  
+  // Settings
+  enableAutoSave: (enabled?: boolean) => void;
+  
+  // Utilities
+  generateId: () => string;
+};
+
+// Create the context
+const ResumeDataContext = createContext<ResumeDataContextType | null>(null);
 
 const STORAGE_KEY = 'resumeData';
 
@@ -319,7 +383,7 @@ export function useResumeData() {
     });
   }, [saveToStorage]);
 
-  // Certifications management
+    // Certifications management
   const addCertification = useCallback((certification: Omit<Certification, 'id'>) => {
     const newCertification: Certification = {
       ...certification,
@@ -396,7 +460,6 @@ export function useResumeData() {
   }, [saveToStorage]);
 
   // Validate resume data
-   // Validate resume data
   const validateResumeData = useCallback(() => {
     const errors: string[] = [];
     
@@ -615,4 +678,23 @@ export function useResumeData() {
     // Utilities
     generateId
   };
+}
+
+export function useResumeDataContext() {
+  const context = useContext(ResumeDataContext);
+  if (context === undefined) {
+    throw new Error('useResumeDataContext must be used within a ResumeDataProvider');
+  }
+  return context;
+}
+
+// Provider component
+export function ResumeDataProvider({ children }: ResumeDataProviderProps) {
+  const resumeDataHook = useResumeData();
+  
+  return (
+    <ResumeDataContext.Provider value={resumeDataHook}>
+      {children}
+    </ResumeDataContext.Provider>
+  );
 }

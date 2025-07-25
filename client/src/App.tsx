@@ -1,10 +1,11 @@
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Router, Route, Switch } from 'wouter';
 import { Toaster } from '@/components/ui/toaster';
 import Home from '@/pages/home';
 import Landing from '@/pages/landing';
 import NotFound from '@/pages/not-found';
-import ResumeBuilder from '@/pages/resume-builder';
+import ResumeBuilderPage from '@/pages/resume-builder'; // Changed from 'ResumeBuilder' to 'ResumeBuilderPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,7 +23,7 @@ function App() {
         <Switch>
           <Route path="/" component={Landing} />
           <Route path="/home" component={Home} />
-          <Route path="/resume-builder" component={ResumeBuilder} />
+          <Route path="/resume-builder" component={ResumeBuilderPage} /> {/* Changed from 'ResumeBuilder' to 'ResumeBuilderPage' */}
           <Route component={NotFound} />
         </Switch>
       </Router>

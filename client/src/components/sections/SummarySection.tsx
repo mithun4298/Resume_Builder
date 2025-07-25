@@ -8,16 +8,6 @@ interface SummarySectionProps {
   onPrevious: () => void;
 }
 
-const SUMMARY_EXAMPLES = [
-  "Experienced software engineer with 5+ years developing scalable web applications using React, Node.js, and cloud technologies. Proven track record of leading cross-functional teams and delivering high-quality solutions that improve user experience and business outcomes.",
-  
-  "Results-driven marketing professional with expertise in digital marketing, content strategy, and data analytics. Successfully increased brand awareness by 150% and generated $2M+ in revenue through innovative campaigns and strategic partnerships.",
-  
-  "Detail-oriented financial analyst with strong analytical skills and 3+ years of experience in financial modeling, budgeting, and forecasting. Proficient in Excel, SQL, and financial software with a track record of identifying cost-saving opportunities worth $500K+.",
-  
-  "Creative graphic designer passionate about visual storytelling and brand development. Skilled in Adobe Creative Suite, UI/UX design, and project management. Successfully designed marketing materials for 50+ clients, resulting in 30% average increase in engagement."
-];
-
 export const SummarySection: React.FC<SummarySectionProps> = ({
   onNext,
   onPrevious
@@ -33,8 +23,12 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
   ];
 
   const handleSummaryChange = (value: string) => {
-    updatePersonalInfo({ summary: value } as any);
+    console.log('Summary changing to:', value); // Debug log
+    updatePersonalInfo({ summary: value });
   };
+
+  // Let's replace TouchFormField with a standard textarea for now
+  const currentSummary = resumeData.personalInfo?.summary || resumeData.summary || '';
 
   const handleGenerateSuggestions = async () => {
     setIsGenerating(true);
@@ -54,7 +48,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
     setSuggestions([]);
   };
 
-  const wordCount = resumeData.summary?.split(/\s+/).filter(word => word.length > 0).length || 0;
+  const wordCount = currentSummary?.split(/\s+/).filter(word => word.length > 0).length || 0;
   const recommendedWordCount = { min: 50, max: 150 };
 
   const getWordCountColor = () => {
@@ -71,17 +65,23 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
         <p className="text-gray-600">Write a compelling summary that highlights your key strengths</p>
       </div>
 
-      {/* Summary Input */}
+      {/* Summary Input - Using standard textarea instead of TouchFormField */}
       <div className="space-y-4">
-        <TouchFormField
-          label="Professional Summary"
-          value={resumeData.summary || ''}
-          onChange={handleSummaryChange}
-          multiline
-          rows={6}
-          placeholder="Write a brief summary of your professional background, key skills, and career objectives. This should be 2-3 sentences that capture your value proposition."
-          helpText="This appears at the top of your resume and is often the first thing employers read."
-        />
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Professional Summary
+          </label>
+          <textarea
+            value={currentSummary}
+            onChange={(e) => handleSummaryChange(e.target.value)}
+            rows={6}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-gray-900 placeholder-gray-500"
+            placeholder="Write a brief summary of your professional background, key skills, and career objectives. This should be 2-3 sentences that capture your value proposition."
+          />
+          <p className="text-sm text-gray-500">
+            This appears at the top of your resume and is often the first thing employers read.
+          </p>
+        </div>
 
         {/* Word Count */}
         <div className="flex justify-between items-center text-sm">
@@ -185,7 +185,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
           <li>• Use action words and quantify results when possible</li>
           <li>• Tailor your summary to the specific job you're applying for</li>
           <li>• Keep it concise but impactful (2-3 sentences)</li>
-          <li>• Avoid using &quot;I&quot; - write in third person</li>
+          <li>• Avoid using "I" - write in third person</li>
         </ul>
       </div>
 
