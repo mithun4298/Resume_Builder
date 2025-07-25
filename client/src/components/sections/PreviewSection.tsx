@@ -83,10 +83,43 @@ const getPreviewStyles = (template: string) => {
 
 const getHeaderStyles = (template: string) => {
   const templateStyles = {
-    modern: "text-center border-b-2 border-blue-500 pb-4 bg-blue-600 text-white p-4 rounded-t-lg -m-6 mb-4",
+    modern: "text-center bg-blue-600 text-white p-4 rounded-t-lg -m-6 mb-4",
     classic: "text-center border-b-4 border-black pb-4",
-    creative: "text-center border-b-2 border-purple-500 pb-4 bg-purple-600 text-white p-4 rounded-t-lg -m-6 mb-4",
+    creative: "text-center bg-purple-600 text-white p-4 rounded-t-lg -m-6 mb-4",
     minimal: "text-left border-b border-gray-300 pb-4",
+  };
+  
+  return templateStyles[template] || templateStyles.modern;
+};
+
+const getSectionTitleStyles = (template: string) => {
+  const templateStyles = {
+    modern: "text-lg font-semibold text-blue-600 mb-2 border-b-2 border-blue-500 pb-1",
+    classic: "text-lg font-semibold text-black mb-2 border-b border-black pb-1 uppercase tracking-wide",
+    creative: "text-lg font-semibold text-purple-600 mb-2 bg-purple-100 px-2 py-1 rounded",
+    minimal: "text-sm font-semibold text-gray-700 mb-2 border-b border-gray-300 pb-1",
+  };
+  
+  return templateStyles[template] || templateStyles.modern;
+};
+
+const getSkillTagStyles = (template: string) => {
+  const templateStyles = {
+    modern: "px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded",
+    classic: "px-2 py-1 bg-gray-200 text-gray-800 text-xs font-medium rounded",
+    creative: "px-2 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded",
+    minimal: "px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded",
+  };
+  
+  return templateStyles[template] || templateStyles.modern;
+};
+
+const getExperienceBorderStyles = (template: string) => {
+  const templateStyles = {
+    modern: "border-l-2 border-blue-200 pl-4",
+    classic: "border-l-2 border-black pl-4",
+    creative: "border-l-4 border-purple-400 pl-4",
+    minimal: "border-l border-gray-300 pl-4",
   };
   
   return templateStyles[template] || templateStyles.modern;
@@ -175,44 +208,69 @@ const getHeaderStyles = (template: string) => {
         </div>
       </div>
 
+      {/* Selected Template Info */}
+      <div className="bg-white border-2 border-gray-200 rounded-xl p-4">
+        <div className="flex items-center space-x-3">
+          <div className={cn(
+            "w-4 h-4 rounded-full",
+            selectedTemplate === 'modern' && "bg-blue-500",
+            selectedTemplate === 'classic' && "bg-gray-800", 
+            selectedTemplate === 'creative' && "bg-purple-500",
+            selectedTemplate === 'minimal' && "bg-gray-400"
+          )}></div>
+          <div>
+            <h4 className="font-semibold text-gray-900">
+              {selectedTemplate.charAt(0).toUpperCase() + selectedTemplate.slice(1)} Template Selected
+            </h4>
+            <p className="text-sm text-gray-600">
+              {selectedTemplate === 'modern' && 'Clean, professional design with blue accents'}
+              {selectedTemplate === 'classic' && 'Traditional black and white layout'}
+              {selectedTemplate === 'creative' && 'Colorful design with purple highlights'}
+              {selectedTemplate === 'minimal' && 'Simple, clean layout with minimal styling'}
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Resume Preview */}
       <div className={getPreviewStyles(selectedTemplate)}>
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Resume Preview</h3>
         
         {/* Mock Resume Preview */}
-        <div className={getHeaderStyles(selectedTemplate)}>
+        <div className="space-y-4">
           {/* Header */}
-          <div className="text-center border-b border-gray-300 pb-4">
-            <h1 className="text-2xl font-bold text-gray-900">
+          <div className={getHeaderStyles(selectedTemplate)}>
+            <h1 className={cn(
+              "text-2xl font-bold",
+              selectedTemplate === 'modern' || selectedTemplate === 'creative' ? "text-white" : "text-gray-900"
+            )}>
               {resumeData.personalInfo.firstName} {resumeData.personalInfo.lastName}
             </h1>
-            {/* {resumeData.personalInfo.title && (
-              <p className="text-lg text-gray-600 mt-1">{resumeData.personalInfo.title}</p>
-            )} */}
-            <div className="flex flex-wrap justify-center gap-4 mt-2 text-sm text-gray-600">
+            <div className={cn(
+              "flex flex-wrap justify-center gap-4 mt-2 text-sm",
+              selectedTemplate === 'modern' || selectedTemplate === 'creative' ? "text-white" : "text-gray-600"
+            )}>
               {resumeData.personalInfo.email && <span>{resumeData.personalInfo.email}</span>}
               {resumeData.personalInfo.phone && <span>{resumeData.personalInfo.phone}</span>}
-              {/* {resumeData.personalInfo.city && resumeData.personalInfo.state && (
-                <span>{resumeData.}, {resumeData.personalInfo.state}</span>
-              )} */}
+              {resumeData.personalInfo.location && <span>{resumeData.personalInfo.location}</span>}
             </div>
           </div>
 
           {/* Summary */}
           {resumeData.summary && (
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">Professional Summary</h2>
-              <p className="text-gray-700 text-sm leading-relaxed">{resumeData  .summary}</p>
+              <h2 className={getSectionTitleStyles(selectedTemplate)}>Professional Summary</h2>
+              <p className="text-gray-700 text-sm leading-relaxed">{resumeData.summary}</p>
             </div>
           )}
 
           {/* Experience */}
           {resumeData.experiences.length > 0 && (
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">Work Experience</h2>
+              <h2 className={getSectionTitleStyles(selectedTemplate)}>Work Experience</h2>
               <div className="space-y-3">
                 {resumeData.experiences.slice(0, 2).map((exp) => (
-                  <div key={exp.id} className="border-l-2 border-blue-200 pl-4">
+                  <div key={exp.id} className={getExperienceBorderStyles(selectedTemplate)}>
                     <h3 className="font-medium text-gray-900">{exp.position}</h3>
                     <p className="text-sm text-gray-600">{exp.company} • {exp.startDate} - {exp.endDate || 'Present'}</p>
                     {exp.description && (
@@ -230,7 +288,7 @@ const getHeaderStyles = (template: string) => {
           {/* Education */}
           {resumeData.education.length > 0 && (
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">Education</h2>
+              <h2 className={getSectionTitleStyles(selectedTemplate)}>Education</h2>
               <div className="space-y-2">
                 {resumeData.education.slice(0, 2).map((edu) => (
                   <div key={edu.id}>
@@ -245,12 +303,12 @@ const getHeaderStyles = (template: string) => {
           {/* Skills */}
           {resumeData.skills.length > 0 && (
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">Skills</h2>
+              <h2 className={getSectionTitleStyles(selectedTemplate)}>Skills</h2>
               <div className="flex flex-wrap gap-2">
                 {resumeData.skills.slice(0, 8).map((skill) => (
                   <span
                     key={skill.id}
-                    className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded"
+                    className={getSkillTagStyles(selectedTemplate)}
                   >
                     {skill.name}
                   </span>
