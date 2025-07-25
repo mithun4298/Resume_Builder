@@ -9,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { createDefaultResumeData, defaultResumeSettings, formatDate } from "@/lib/defaultResumeData";
+// Use the same key as in useResumeData
+const LOCAL_DRAFT_KEY = "resume_builder_draft";
 import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
@@ -17,10 +19,8 @@ import QuickActionsWidget from "@/components/QuickActionsWidget";
 import ResumeCard from "@/components/ResumeCard";
 import ResumeCardSkeleton from "@/components/ResumeCardSkeleton";
 import EmptyState from "@/components/EmptyState";
-import { Plus, FileText, Calendar, Download, Edit, Trash2, Eye, Clock, Star, TrendingUp, Users, Award } from "lucide-react";
-import type { Resume as SharedResume } from "@shared/schema";
+import { Plus, FileText, Download, TrendingUp,  Award } from "lucide-react";
 
-console.log('Home component loaded');
 
 interface Resume {
   id: string;
@@ -31,7 +31,7 @@ interface Resume {
   downloadCount?: number;
 }
 
-export default function Home() {
+const Home: React.FC = () => {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
@@ -54,10 +54,50 @@ export default function Home() {
     }
   }, [isAuthenticated, authLoading, toast]);
 
-  const { data: resumes, isLoading } = useQuery<Resume[]>({
+  const { data: serverResumes, isLoading: resumesLoading } = useQuery<Resume[]>({
     queryKey: ["/api/resumes"],
+    queryFn: () => apiRequest("GET", "/api/resumes").then(res => res.json()),
     retry: false,
   });
+
+  // Load local draft from localStorage (check both keys for compatibility)
+  const [localDraft, setLocalDraft] = useState<any | null>(null);
+  useEffect(() => {
+    try {
+      let saved = localStorage.getItem(LOCAL_DRAFT_KEY);
+      if (!saved) {
+        saved = localStorage.getItem("resumeData");
+      }
+      if (saved) {
+        const draft = JSON.parse(saved);
+        // Try to get a title from personalInfo or fallback
+        let title = draft.title || (draft.personalInfo && draft.personalInfo.title) || "Untitled Draft";
+        if (title && title.trim() !== "") {
+          setLocalDraft({ ...draft, title });
+        }
+      }
+    } catch {}
+  }, []);
+
+  // Merge local draft with server resumes (if not already present)
+  let resumes = serverResumes || [];
+  if (localDraft) {
+    const exists = resumes.some(r => r.title === localDraft.title);
+    if (!exists) {
+      resumes = [
+        {
+          id: "local-draft",
+          title: localDraft.title,
+          templateId: localDraft.templateId || "",
+          updatedAt: new Date().toISOString(),
+          status: "draft",
+          downloadCount: 0,
+          isLocalDraft: true,
+        },
+        ...resumes,
+      ];
+    }
+  }
 
   const deleteResumeMutation = useMutation({
     mutationFn: async (resumeId: string) => {
@@ -260,8 +300,6 @@ export default function Home() {
             />
           </div>
 
-
-          
           {/* Quick Actions - Now Floating */}
           <QuickActionsWidget 
             onCreateResume={() => setDialogOpen(true)}
@@ -269,70 +307,79 @@ export default function Home() {
             onAIAssistant={() => toast({ title: "Coming Soon", description: "AI Assistant feature is in development!" })}
           />
 
-          {/* Resumes Grid */}
-          {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(6)].map((_, i) => (
-                <ResumeCardSkeleton key={i} />
-              ))}
-            </div>
-          ) : resumes && resumes.length > 0 ? (
-            <div className="divide-y">
-              {resumes.map((resume) => (
-                <ResumeCard
-                  key={resume.id}
-                  resume={resume}
-                  onEdit={() => navigate(`/resume-builder?id=${resume.id}`)}
-                  onDelete={() => handleDeleteResume(resume.id)}
-                  onDownload={() => handleDownloadResume(resume.id)}
-                  onPreview={() => handlePreviewResume(resume.id)}
-                />
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              icon={<FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />}
-              title="No resumes yet"
-              description="Create your first resume to get started"
-              action={
-                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Create Your First Resume
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Create New Resume</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="title">Resume Title</Label>
-                        <Input
-                          id="title"
-                          value={newResumeTitle}
-                          onChange={(e) => setNewResumeTitle(e.target.value)}
-                          placeholder="e.g., Software Engineer Resume"
-                        />
-                      </div>
-                      <Button 
-                        onClick={() => createResumeMutation.mutate(newResumeTitle)}
-                        disabled={!newResumeTitle.trim() || createResumeMutation.isPending}
-                        className="w-full"
-                      >
-                        {createResumeMutation.isPending ? "Creating..." : "Create Resume"}
+          {/* Resume List */}
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Your Resumes</h2>
+            {resumesLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <ResumeCardSkeleton key={index} />
+                ))}
+              </div>
+            ) : resumes && resumes.length > 0 ? (
+              <div className="divide-y">
+                {resumes.map((resume) => (
+                  <ResumeCard
+                    key={resume.id}
+                    resume={resume}
+                    onEdit={() => navigate(`/resume-builder?id=${resume.id}`)}
+                    onDelete={() => handleDeleteResume(resume.id)}
+                    onDownload={() => handleDownloadResume(resume.id)}
+                    onPreview={() => handlePreviewResume(resume.id)}
+                  >
+                    {resume.isLocalDraft && (
+                      <span style={{ color: 'orange', fontWeight: 600, marginLeft: 8 }}>(Local Draft)</span>
+                    )}
+                  </ResumeCard>
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                icon={<FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />}
+                title="No resumes yet"
+                description="Create your first resume to get started"
+                action={
+                  <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Create Your First Resume
                       </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              }
-            />
-          )}
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Create New Resume</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="title">Resume Title</Label>
+                          <Input
+                            id="title"
+                            value={newResumeTitle}
+                            onChange={(e) => setNewResumeTitle(e.target.value)}
+                            placeholder="e.g., Software Engineer Resume"
+                          />
+                        </div>
+                        <Button 
+                          onClick={() => createResumeMutation.mutate(newResumeTitle)}
+                          disabled={!newResumeTitle.trim() || createResumeMutation.isPending}
+                          className="w-full"
+                        >
+                          {createResumeMutation.isPending ? "Creating..." : "Create Resume"}
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                }
+              />
+            )}
+          </div>
         </div>
       </main>
       
       <Footer />
     </div>
   );
-}
+};
+
+export default Home;
