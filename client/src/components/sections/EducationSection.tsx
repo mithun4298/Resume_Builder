@@ -10,13 +10,17 @@ interface EducationSectionProps {
   onAdd: (education: Omit<Education, 'id'>) => void;
   onUpdate: (id: string, updates: Partial<Education>) => void;
   onDelete: (id: string) => void;
+  onNext: () => void;
+  onPrevious: () => void;
 }
 
 export const EducationSection: React.FC<EducationSectionProps> = ({
   education,
   onAdd,
   onUpdate,
-  onDelete
+  onDelete,
+  onNext,
+  onPrevious
 }) => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEducation, setEditingEducation] = useState<Education | null>(null);
@@ -209,13 +213,13 @@ export const EducationSection: React.FC<EducationSectionProps> = ({
       <div className="sticky bottom-0 bg-white pt-4 pb-safe">
         <div className="flex space-x-4">
           <button
-            onClick={() => {}}
+            onClick={onPrevious}
             className="flex-1 py-4 px-6 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-all duration-200"
           >
             ← Previous
           </button>
           <button
-            onClick={() => {}}
+            onClick={onNext}
             className="flex-1 py-4 px-6 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all duration-200"
           >
             Continue →

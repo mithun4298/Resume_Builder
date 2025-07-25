@@ -58,13 +58,22 @@ export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ resumeId }) => {
     const newCompletedSteps: string[] = [];
 
     // Check Personal Info
-    if (resumeData.personalInfo?.firstName && resumeData.personalInfo?.lastName && resumeData.personalInfo?.email) {
+    if (resumeData.personalInfo?.firstName && 
+      resumeData.personalInfo?.lastName && 
+      resumeData.personalInfo?.email &&
+      resumeData.personalInfo?.phone) {
       newCompletedSteps.push('personal');
     }
 
-    // Check Summary
-    if (resumeData.summary && resumeData.summary.trim().length > 0) {
+    // Check Summary (require at least 20 words)
+    const summaryRaw = resumeData.summary;
+    const summaryTrimmed = summaryRaw ? summaryRaw.trim() : '';
+    const summaryWordCount = summaryTrimmed.length > 0 ? summaryTrimmed.split(/\s+/).filter(word => word.length > 0).length : 0;
+    console.log('[SUMMARY DEBUG] Raw:', summaryRaw, '| Trimmed:', summaryTrimmed, '| Word count:', summaryWordCount, '| Type:', typeof summaryRaw);
+    if (summaryTrimmed.length > 0 && summaryWordCount >= 20) {
       newCompletedSteps.push('summary');
+    } else {
+      console.log('[SUMMARY DEBUG] Not marking summary complete. summaryTrimmed.length:', summaryTrimmed.length, 'summaryWordCount:', summaryWordCount);
     }
 
     // Check Experience
@@ -77,8 +86,8 @@ export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ resumeId }) => {
       newCompletedSteps.push('education');
     }
 
-    // Check Skills
-    if (resumeData.skills && (resumeData.skills.technical?.length > 0 || resumeData.skills.soft?.length > 0)) {
+    // Check Skills (array-based)
+    if (resumeData.skills && resumeData.skills.length > 0) {
       newCompletedSteps.push('skills');
     }
 
@@ -97,8 +106,13 @@ export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ resumeId }) => {
 
   // Check completion status whenever resumeData changes
   useEffect(() => {
+    console.log('📊 Resume data changed:', resumeData);
+
     checkStepCompletion();
   }, [resumeData]);
+  useEffect(() => {
+  console.log('🎯 Completed steps updated:', completedSteps);
+}, [completedSteps]);
 
   useEffect(() => {
     if (resumeId) {

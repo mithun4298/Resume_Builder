@@ -135,7 +135,7 @@ type ResumeDataContextType = {
 // Create the context
 const ResumeDataContext = createContext<ResumeDataContextType | null>(null);
 
-const STORAGE_KEY = 'resumeData';
+const STORAGE_KEY = 'resume-builder-data';
 
 const initialResumeData: ResumeData = {
   personalInfo: {
@@ -160,56 +160,41 @@ const initialResumeData: ResumeData = {
 };
 
 export function useResumeData() {
-  const [resumeData, setResumeData] = useState<ResumeData>(initialResumeData);
+  const [resumeData, setResumeData] = useState<ResumeData>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : initialResumeData;
+    } catch {
+      return initialResumeData;
+    }
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
+  // Save to localStorage whenever resumeData changes
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(resumeData));
+    setLastSaved(new Date());
+  }, [resumeData]);
+
   // Load data from localStorage on mount
   useEffect(() => {
-    try {
-      const savedData = localStorage.getItem(STORAGE_KEY);
-      if (savedData) {
-        const parsedData = JSON.parse(savedData);
-        setResumeData({ ...initialResumeData, ...parsedData });
-        setLastSaved(new Date());
-      }
-    } catch (error) {
-      console.error('Error loading resume data:', error);
-    } finally {
-      setIsLoading(false);
-    }
+    setIsLoading(false);
   }, []);
 
-  // Save to localStorage
-  const saveToStorage = useCallback((data: ResumeData) => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      setLastSaved(new Date());
-    } catch (error) {
-      console.error('Error saving resume data:', error);
-    }
-  }, []);
-
-  // Personal Info management
   const updatePersonalInfo = useCallback((updates: Partial<PersonalInfo>) => {
-    setResumeData(prev => {
-      const newData = {
-        ...prev,
-        personalInfo: { ...prev.personalInfo, ...updates }
-      };
-      saveToStorage(newData);
-      return newData;
-    });
-  }, [saveToStorage]);
+    setResumeData(prev => ({
+      ...prev,
+      personalInfo: { ...prev.personalInfo, ...updates }
+    }));
+  }, []);
 
-  // Summary management
   const updateSummary = useCallback((summary: string) => {
-    setResumeData(prev => {
-      const newData = { ...prev, summary };
-      saveToStorage(newData);
-      return newData;
-    });
-  }, [saveToStorage]);
+    setResumeData(prev => ({
+      ...prev,
+      summary
+    }));
+  }, []);
 
   // Experience management
   const addExperience = useCallback((experience: Omit<Experience, 'id'>) => {
@@ -217,48 +202,35 @@ export function useResumeData() {
       ...experience,
       id: Date.now().toString()
     };
-    setResumeData(prev => {
-      const newData = {
-        ...prev,
-        experiences: [...prev.experiences, newExperience]
-      };
-      saveToStorage(newData);
-      return newData;
-    });
+    setResumeData(prev => ({
+      ...prev,
+      experiences: [...prev.experiences, newExperience]
+    }));
     return newExperience.id;
-  }, [saveToStorage]);
+  }, []);
 
   const updateExperience = useCallback((id: string, updates: Partial<Experience>) => {
-    setResumeData(prev => {
-      const newData = {
-        ...prev,
-        experiences: prev.experiences.map(exp =>
-          exp.id === id ? { ...exp, ...updates } : exp
-        )
-      };
-      saveToStorage(newData);
-      return newData;
-    });
-  }, [saveToStorage]);
+    setResumeData(prev => ({
+      ...prev,
+      experiences: prev.experiences.map(exp =>
+        exp.id === id ? { ...exp, ...updates } : exp
+      )
+    }));
+  }, []);
 
   const deleteExperience = useCallback((id: string) => {
-    setResumeData(prev => {
-      const newData = {
-        ...prev,
-        experiences: prev.experiences.filter(exp => exp.id !== id)
-      };
-      saveToStorage(newData);
-      return newData;
-    });
-  }, [saveToStorage]);
+    setResumeData(prev => ({
+      ...prev,
+      experiences: prev.experiences.filter(exp => exp.id !== id)
+    }));
+  }, []);
 
   const reorderExperiences = useCallback((experiences: Experience[]) => {
-    setResumeData(prev => {
-      const newData = { ...prev, experiences };
-      saveToStorage(newData);
-      return newData;
-    });
-  }, [saveToStorage]);
+    setResumeData(prev => ({
+      ...prev,
+      experiences
+    }));
+  }, []);
 
   // Education management
   const addEducation = useCallback((education: Omit<Education, 'id'>) => {
@@ -266,81 +238,78 @@ export function useResumeData() {
       ...education,
       id: Date.now().toString()
     };
-    setResumeData(prev => {
-      const newData = {
-        ...prev,
-        education: [...prev.education, newEducation]
-      };
-      saveToStorage(newData);
-      return newData;
-    });
+    setResumeData(prev => ({
+      ...prev,
+      education: [...prev.education, newEducation]
+    }));
     return newEducation.id;
-  }, [saveToStorage]);
+  }, []);
 
   const updateEducation = useCallback((id: string, updates: Partial<Education>) => {
-    setResumeData(prev => {
-      const newData = {
-        ...prev,
-        education: prev.education.map(edu =>
-          edu.id === id ? { ...edu, ...updates } : edu
-        )
-      };
-      saveToStorage(newData);
-      return newData;
-    });
-  }, [saveToStorage]);
+    setResumeData(prev => ({
+      ...prev,
+      education: prev.education.map(edu =>
+        edu.id === id ? { ...edu, ...updates } : edu
+      )
+    }));
+  }, []);
 
   const deleteEducation = useCallback((id: string) => {
-    setResumeData(prev => {
-      const newData = {
-        ...prev,
-        education: prev.education.filter(edu => edu.id !== id)
-      };
-      saveToStorage(newData);
-      return newData;
-    });
-  }, [saveToStorage]);
+    setResumeData(prev => ({
+      ...prev,
+      education: prev.education.filter(edu => edu.id !== id)
+    }));
+  }, []);
 
   // Skills management
-  const addSkill = useCallback((skill: Omit<Skill, 'id'>) => {
+  const addSkill = useCallback((skillData: Omit<Skill, 'id'>) => {
     const newSkill: Skill = {
-      ...skill,
-      id: Date.now().toString()
+      ...skillData,
+      id: Date.now().toString() + Math.random(),
+      category: 'Technical'
     };
-    setResumeData(prev => {
-      const newData = {
-        ...prev,
-        skills: [...prev.skills, newSkill]
-      };
-      saveToStorage(newData);
-      return newData;
-    });
+    setResumeData(prev => ({
+      ...prev,
+      skills: [...prev.skills, newSkill]
+    }));
     return newSkill.id;
-  }, [saveToStorage]);
+  }, []);
 
   const updateSkill = useCallback((id: string, updates: Partial<Skill>) => {
-    setResumeData(prev => {
-      const newData = {
-        ...prev,
-        skills: prev.skills.map(skill =>
-          skill.id === id ? { ...skill, ...updates } : skill
-        )
-      };
-      saveToStorage(newData);
-      return newData;
-    });
-  }, [saveToStorage]);
+    setResumeData(prev => ({
+      ...prev,
+      skills: prev.skills.map(skill => 
+        skill.id === id ? { ...skill, ...updates } : skill
+      )
+    }));
+  }, []);
 
   const deleteSkill = useCallback((id: string) => {
-    setResumeData(prev => {
-      const newData = {
-        ...prev,
-        skills: prev.skills.filter(skill => skill.id !== id)
-      };
-      saveToStorage(newData);
-      return newData;
-    });
-  }, [saveToStorage]);
+    setResumeData(prev => ({
+      ...prev,
+      skills: prev.skills.filter(skill => skill.id !== id)
+    }));
+  }, []);
+
+  const bulkAddSkills = useCallback((skillNames: string[]) => {
+    const newSkills: Skill[] = skillNames.map(name => ({
+      id: Date.now().toString() + Math.random(),
+      name,
+      level: 'Intermediate' as const,
+      category: 'Technical'
+    }));
+    setResumeData(prev => ({
+      ...prev,
+      skills: [...prev.skills, ...newSkills]
+    }));
+  }, []);
+
+  const bulkDeleteSkills = useCallback((skillIds: string[]) => {
+    setResumeData(prev => ({
+      ...prev,
+      skills: prev.skills.filter(skill => !skillIds.includes(skill.id))
+    }));
+  }, []);
 
   // Projects management
   const addProject = useCallback((project: Omit<Project, 'id'>) => {
@@ -348,90 +317,65 @@ export function useResumeData() {
       ...project,
       id: Date.now().toString()
     };
-    setResumeData(prev => {
-      const newData = {
-        ...prev,
-        projects: [...prev.projects, newProject]
-      };
-      saveToStorage(newData);
-      return newData;
-    });
+    setResumeData(prev => ({
+      ...prev,
+      projects: [...prev.projects, newProject]
+    }));
     return newProject.id;
-  }, [saveToStorage]);
+  }, []);
 
   const updateProject = useCallback((id: string, updates: Partial<Project>) => {
-    setResumeData(prev => {
-      const newData = {
-        ...prev,
-        projects: prev.projects.map(project =>
-          project.id === id ? { ...project, ...updates } : project
-        )
-      };
-      saveToStorage(newData);
-      return newData;
-    });
-  }, [saveToStorage]);
+    setResumeData(prev => ({
+      ...prev,
+      projects: prev.projects.map(project =>
+        project.id === id ? { ...project, ...updates } : project
+      )
+    }));
+  }, []);
 
   const deleteProject = useCallback((id: string) => {
-    setResumeData(prev => {
-      const newData = {
-        ...prev,
-        projects: prev.projects.filter(project => project.id !== id)
-      };
-      saveToStorage(newData);
-      return newData;
-    });
-  }, [saveToStorage]);
+    setResumeData(prev => ({
+      ...prev,
+      projects: prev.projects.filter(project => project.id !== id)
+    }));
+  }, []);
 
-    // Certifications management
+  // Certifications management
   const addCertification = useCallback((certification: Omit<Certification, 'id'>) => {
     const newCertification: Certification = {
       ...certification,
       id: Date.now().toString()
     };
-    setResumeData(prev => {
-      const newData = {
-        ...prev,
-        certifications: [...prev.certifications, newCertification]
-      };
-      saveToStorage(newData);
-      return newData;
-    });
+    setResumeData(prev => ({
+      ...prev,
+      certifications: [...prev.certifications, newCertification]
+    }));
     return newCertification.id;
-  }, [saveToStorage]);
+  }, []);
 
   const updateCertification = useCallback((id: string, updates: Partial<Certification>) => {
-    setResumeData(prev => {
-      const newData = {
-        ...prev,
-        certifications: prev.certifications.map(cert =>
-          cert.id === id ? { ...cert, ...updates } : cert
-        )
-      };
-      saveToStorage(newData);
-      return newData;
-    });
-  }, [saveToStorage]);
+    setResumeData(prev => ({
+      ...prev,
+      certifications: prev.certifications.map(cert =>
+        cert.id === id ? { ...cert, ...updates } : cert
+      )
+    }));
+  }, []);
 
   const deleteCertification = useCallback((id: string) => {
-    setResumeData(prev => {
-      const newData = {
-        ...prev,
-        certifications: prev.certifications.filter(cert => cert.id !== id)
-      };
-      saveToStorage(newData);
-      return newData;
-    });
-  }, [saveToStorage]);
+    setResumeData(prev => ({
+      ...prev,
+      certifications: prev.certifications.filter(cert => cert.id !== id)
+    }));
+  }, []);
 
   // Template selection
   const selectTemplate = useCallback((templateId: string) => {
-    setResumeData(prev => {
-      const newData = { ...prev, selectedTemplate: templateId };
-      saveToStorage(newData);
-      return newData;
-    });
-  }, [saveToStorage]);
+    setResumeData(prev => ({
+      ...prev,
+      selectedTemplate: templateId
+    }));
+  }, []);
 
   // Clear all data
   const clearResumeData = useCallback(() => {
@@ -451,13 +395,12 @@ export function useResumeData() {
       const parsedData = JSON.parse(jsonData);
       const newData = { ...initialResumeData, ...parsedData };
       setResumeData(newData);
-      saveToStorage(newData);
       return true;
     } catch (error) {
       console.error('Error importing data:', error);
       return false;
     }
-  }, [saveToStorage]);
+  }, []);
 
   // Validate resume data
   const validateResumeData = useCallback(() => {
@@ -589,36 +532,6 @@ export function useResumeData() {
     return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }, []);
 
-  // Bulk operations
-  const bulkAddSkills = useCallback((skills: string[]) => {
-    const newSkills: Skill[] = skills.map(skillName => ({
-      id: generateId(),
-      name: skillName.trim(),
-      level: 'Intermediate' as const,
-      category: 'Other'
-    }));
-    
-    setResumeData(prev => {
-      const newData = {
-        ...prev,
-        skills: [...prev.skills, ...newSkills]
-      };
-      saveToStorage(newData);
-      return newData;
-    });
-  }, [generateId, saveToStorage]);
-
-  const bulkDeleteSkills = useCallback((skillIds: string[]) => {
-    setResumeData(prev => {
-      const newData = {
-        ...prev,
-        skills: prev.skills.filter(skill => !skillIds.includes(skill.id))
-      };
-      saveToStorage(newData);
-      return newData;
-    });
-  }, [saveToStorage]);
-
   return {
     // State
     resumeData,
@@ -689,7 +602,7 @@ export function useResumeDataContext() {
 }
 
 // Provider component
-export function ResumeDataProvider({ children }: ResumeDataProviderProps) {
+export function ResumeDataProvider({ children }: { children: ReactNode }) {
   const resumeDataHook = useResumeData();
   
   return (

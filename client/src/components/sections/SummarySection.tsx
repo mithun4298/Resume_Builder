@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { TouchFormField } from '../mobile/TouchFormField';
 import { useResumeData } from '@/hooks/useResumeData';
 import { cn } from '@/lib/utils';
 
@@ -12,7 +11,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
   onNext,
   onPrevious
 }) => {
-  const { resumeData, updatePersonalInfo } = useResumeData();
+  const { resumeData, updateSummary } = useResumeData();
   const [isGenerating, setIsGenerating] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
 
@@ -23,12 +22,11 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
   ];
 
   const handleSummaryChange = (value: string) => {
-    console.log('Summary changing to:', value); // Debug log
-    updatePersonalInfo({ summary: value });
+    console.log('Summary changing to:', value);
+    updateSummary(value); // Use the correct method
   };
 
-  // Let's replace TouchFormField with a standard textarea for now
-  const currentSummary = resumeData.personalInfo?.summary || resumeData.summary || '';
+  const currentSummary = resumeData.summary || '';
 
   const handleGenerateSuggestions = async () => {
     setIsGenerating(true);
@@ -49,13 +47,16 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
   };
 
   const wordCount = currentSummary?.split(/\s+/).filter(word => word.length > 0).length || 0;
-  const recommendedWordCount = { min: 50, max: 150 };
+  const recommendedWordCount = { min: 20, max: 150 };
 
   const getWordCountColor = () => {
     if (wordCount < recommendedWordCount.min) return 'text-orange-600';
     if (wordCount > recommendedWordCount.max) return 'text-red-600';
     return 'text-green-600';
   };
+
+  // Check if section is completed
+  const isCompleted = currentSummary.trim().length > 0 && wordCount >= recommendedWordCount.min;
 
   return (
     <div className="summary-section space-y-6">
@@ -65,11 +66,11 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
         <p className="text-gray-600">Write a compelling summary that highlights your key strengths</p>
       </div>
 
-      {/* Summary Input - Using standard textarea instead of TouchFormField */}
+      {/* Summary Input */}
       <div className="space-y-4">
         <div className="space-y-2">
           <label className="block text-sm font-medium text-gray-700">
-            Professional Summary
+            Professional Summary *
           </label>
           <textarea
             value={currentSummary}
@@ -101,11 +102,28 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
               wordCount < recommendedWordCount.min ? "bg-orange-500" :
               wordCount > recommendedWordCount.max ? "bg-red-500" : "bg-green-500"
             )}
-            style={{ 
-              width: `${Math.min(100, (wordCount / recommendedWordCount.max) * 100)}%` 
+            style={{
+              width: `${Math.min(100, (wordCount / recommendedWordCount.max) * 100)}%`
             }}
           />
         </div>
+      </div>
+
+      {/* Completion Status */}
+      <div className="bg-blue-50 p-4 rounded-xl">
+        <div className="flex items-center space-x-2">
+          <div className={`w-3 h-3 rounded-full ${isCompleted ? 'bg-green-500' : 'bg-orange-500'}`} />
+          <span className="text-sm font-medium">
+            {isCompleted
+              ? '✅ Section Complete'
+              : `⏳ Add ${recommendedWordCount.min - wordCount} more words to complete`}
+          </span>
+        </div>
+        {!isCompleted && (
+          <p className="text-xs text-gray-600 mt-2">
+            Minimum {recommendedWordCount.min} words required. You have {wordCount} words.
+          </p>
+        )}
       </div>
 
       {/* AI Suggestions */}

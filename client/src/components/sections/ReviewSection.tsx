@@ -47,81 +47,95 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
   const getSectionStatus = (section: string) => {
     switch (section) {
       case 'personal':
-        // Check if required personal info fields are filled
-        return (
-          resumeData.personalInfo.firstName?.trim() &&
-          resumeData.personalInfo.lastName?.trim() &&
-          resumeData.personalInfo.email?.trim() &&
-          resumeData.personalInfo.phone?.trim()
-        ) ? 'complete' : 'incomplete';
-        
+        return (resumeData.personalInfo.firstName && 
+                resumeData.personalInfo.lastName && 
+                resumeData.personalInfo.email) ? 'complete' : 'incomplete';
       case 'summary':
-        // Check if summary exists and has minimum word count
-        const summaryText = resumeData.summary?.trim() || '';
-        const wordCount = summaryText.split(/\s+/).filter(word => word.length > 0).length;
-        return summaryText && wordCount >= 20 ? 'complete' : 'incomplete';
-        
+        return (resumeData.summary && resumeData.summary.trim().length >= 20) ? 'complete' : 'incomplete';
       case 'experience':
-        return resumeData.experiences && resumeData.experiences.length > 0 ? 'complete' : 'incomplete';
-        
+        return (resumeData.experiences && resumeData.experiences.length > 0) ? 'complete' : 'incomplete';
       case 'education':
-        return resumeData.education && resumeData.education.length > 0 ? 'complete' : 'incomplete';
-        
+        return (resumeData.education && resumeData.education.length > 0) ? 'complete' : 'incomplete';
       case 'skills':
-        return resumeData.skills && resumeData.skills.length >= 3 ? 'complete' : 'incomplete';
-        
+        return (resumeData.skills && resumeData.skills.length > 0) ? 'complete' : 'incomplete';
+      case 'projects':
+        return (resumeData.projects && resumeData.projects.length > 0) ? 'complete' : 'incomplete';
+      case 'certifications':
+        return (resumeData.certifications && resumeData.certifications.length > 0) ? 'complete' : 'incomplete';
       case 'template':
         return resumeData.selectedTemplate ? 'complete' : 'incomplete';
-        
       default:
         return 'incomplete';
     }
   };
 
   const completionPercentage = () => {
-    const sections = ['personal', 'summary', 'experience', 'education', 'skills', 'template'];
-    const completedSections = sections.filter(section => getSectionStatus(section) === 'complete');
-    return Math.round((completedSections.length / sections.length) * 100);
+    let completed = 0;
+    let total = 6; // personal, summary, experience, education, skills, template
+
+    // Personal Info (required: firstName, lastName, email)
+    if (resumeData.personalInfo.firstName && 
+        resumeData.personalInfo.lastName && 
+        resumeData.personalInfo.email) completed++;
+    
+    // Summary (minimum 20 words)
+    if (resumeData.summary && resumeData.summary.trim().length >= 20) completed++;
+    
+    // Experience (at least 1)
+    if (resumeData.experiences && resumeData.experiences.length > 0) completed++;
+    
+    // Education (at least 1)
+    if (resumeData.education && resumeData.education.length > 0) completed++;
+    
+    // Skills (at least 1)
+    if (resumeData.skills && resumeData.skills.length > 0) completed++;
+    
+    // Template selected
+    if (resumeData.selectedTemplate) completed++;
+
+    return Math.round((completed / total) * 100);
   };
 
   const sections = [
     {
       id: 'personal',
       name: 'Personal Information',
-      description: `${resumeData.personalInfo.firstName} ${resumeData.personalInfo.lastName}, ${resumeData.personalInfo.email}, ${resumeData.personalInfo.phone}`,
+      description: resumeData.personalInfo.firstName && resumeData.personalInfo.lastName
+        ? `${resumeData.personalInfo.firstName} ${resumeData.personalInfo.lastName}`
+        : 'No personal information added',
       icon: '👤'
     },
     {
       id: 'summary',
       name: 'Professional Summary',
-      description: resumeData.summary ? 
-        `${resumeData.summary.substring(0, 60)}...` : 
+      description: resumeData.summary && resumeData.summary.trim().length > 0 ? 
+        `${resumeData.summary.substring(0, 60)}${resumeData.summary.length > 60 ? '...' : ''}` : 
         'No summary added',
       icon: '📝'
     },
     {
       id: 'experience',
       name: 'Work Experience',
-      description: `${resumeData.experiences.length} position${resumeData.experiences.length !== 1 ? 's' : ''} added`,
+      description: `${resumeData.experiences?.length || 0} position${(resumeData.experiences?.length || 0) !== 1 ? 's' : ''} added`,
       icon: '💼'
     },
     {
       id: 'education',
       name: 'Education',
-      description: `${resumeData.education.length} education${resumeData.education.length !== 1 ? 's' : ''} added`,
+      description: `${resumeData.education?.length || 0} education${(resumeData.education?.length || 0) !== 1 ? 's' : ''} added`,
       icon: '🎓'
     },
     {
       id: 'skills',
       name: 'Skills',
-      description: `${resumeData.skills.length} skill${resumeData.skills.length !== 1 ? 's' : ''} added`,
+      description: `${resumeData.skills?.length || 0} skill${(resumeData.skills?.length || 0) !== 1 ? 's' : ''} added`,
       icon: '⚡'
     },
     {
       id: 'template',
       name: 'Template',
       description: resumeData.selectedTemplate ? 
-        `${.charAt(0).toUpperCase() + resumeData.selectedTemplate.slice(1)} template selected` :
+        `${resumeData.selectedTemplate.charAt(0).toUpperCase() + resumeData.selectedTemplate.slice(1)} template selected` :
         'No template selected',
       icon: '🎨'
     }
@@ -263,7 +277,7 @@ export const ReviewSection: React.FC<ReviewSectionProps> = ({
           >
             <div className="flex items-center space-x-3">
               <svg className="w-8 h-8 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" clipRule="evenodd" />
+                <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6a1 1 0 01-1-1H3zm14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" clipRule="evenodd" />
               </svg>
               <div className="text-left">
                 <h4 className="font-semibold text-gray-900">Word Document</h4>
