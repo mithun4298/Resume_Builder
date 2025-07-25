@@ -1,8 +1,11 @@
 import { Router } from 'express';
+import resumeRoutes from './resumeRoutes';
 
 const router = Router();
 
-// Fix: Use underscore prefix for unused parameters
+router.use('/resumes', resumeRoutes);
+
+// Optionally, keep the API root and test endpoints
 router.get('/', (_req, res) => {
   res.json({
     message: 'Resume Builder API',
@@ -17,23 +20,6 @@ router.get('/', (_req, res) => {
 
 router.get('/test', (_req, res) => {
   res.json({ message: 'API is working!' });
-});
-
-// Mock resume endpoints
-router.get('/resumes', (_req, res) => {
-  res.json({ 
-    success: true, 
-    data: { resumes: [] },
-    message: 'Resumes endpoint working'
-  });
-});
-
-router.post('/resumes', (_req, res) => {
-  res.json({ 
-    success: true, 
-    data: { resume: { id: 1, title: 'New Resume' } },
-    message: 'Resume created successfully'
-  });
 });
 
 export default router;

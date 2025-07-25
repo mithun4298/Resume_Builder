@@ -55,8 +55,16 @@ const Home: React.FC = () => {
   }, [isAuthenticated, authLoading, toast]);
 
   const { data: serverResumes, isLoading: resumesLoading } = useQuery<Resume[]>({
-    queryKey: ["/api/resumes"],
-    queryFn: () => apiRequest("GET", "/api/resumes").then(res => res.json()),
+    queryKey: ["/api/resumes/user/all"],
+    queryFn: async () => {
+      console.log("[Dashboard] Fetching /api/resumes/user/all...");
+      const res = await apiRequest("GET", "/api/resumes/user/all");
+      console.log("[Dashboard] Response status:", res.status);
+      const json = await res.json();
+      console.log("[Dashboard] Response JSON:", json);
+      // Support both {resumes: Resume[]} and direct Resume[] for backward compatibility
+      return Array.isArray(json) ? json : json.resumes || [];
+    },
     retry: false,
   });
 
@@ -98,6 +106,7 @@ const Home: React.FC = () => {
       ];
     }
   }
+  console.log("[Dashboard] Final resumes to display:", resumes);
 
   const deleteResumeMutation = useMutation({
     mutationFn: async (resumeId: string) => {

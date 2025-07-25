@@ -4,6 +4,8 @@ import { storage } from '../storage';
 
 const router = Router();
 
+console.log('[API DEBUG] resumeRoutes.ts loaded');
+
 // Define the AuthenticatedRequest interface
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -163,9 +165,12 @@ router.use(optionalAuth);
 
 // GET /api/resumes/user/all - Get all user resumes
 router.get('/user/all', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  console.log('[API DEBUG] /user/all route handler entered');
   try {
     const userId = req.user?.id || 'anonymous';
+    console.log('[API DEBUG] /api/resumes/user/all userId:', userId);
     const resumes = await storage.getUserResumes(userId);
+    console.log('[API DEBUG] /api/resumes/user/all resumes:', JSON.stringify(resumes, null, 2));
     sendSuccess(res, { resumes });
   } catch (error) {
     console.error('Error fetching user resumes:', error);
