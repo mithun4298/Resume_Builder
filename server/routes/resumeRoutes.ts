@@ -5,7 +5,6 @@ import { isAuthenticated } from '../replitAuth';
 
 const router = Router();
 
-console.log('[API DEBUG] resumeRoutes.ts loaded');
 
 // Define the AuthenticatedRequest interface
 interface AuthenticatedRequest extends Request {
@@ -164,15 +163,12 @@ const parseIdParam = (idParam: string | undefined): number | null => {
 
 // GET /api/resumes/user/all - Get all user resumes
 router.get('/user/all', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
-  console.log('[API DEBUG] /user/all route handler entered');
   try {
     const userId = req.user?.id || 'anonymous';
-    console.log('[API DEBUG] /api/resumes/user/all userId:', userId);
     const resumes = await storage.getUserResumes(userId);
-    console.log('[API DEBUG] /api/resumes/user/all resumes:', JSON.stringify(resumes, null, 2));
     sendSuccess(res, { resumes });
   } catch (error) {
-    console.error('Error fetching user resumes:', error);
+    console.error(error);
     sendError(res, 500, 'Failed to fetch resumes');
   }
 });
@@ -213,7 +209,7 @@ router.get('/templates', async (_req: AuthenticatedRequest, res: Response): Prom
     
     sendSuccess(res, { templates });
   } catch (error) {
-    console.error('Error fetching templates:', error);
+    console.error(error);
     sendError(res, 500, 'Failed to fetch templates');
   }
 });
@@ -236,7 +232,7 @@ router.get('/stats', async (_req: AuthenticatedRequest, res: Response): Promise<
     
     sendSuccess(res, { stats: mockStats });
   } catch (error) {
-    console.error('Error fetching resume statistics:', error);
+    console.error(error);
     sendError(res, 500, 'Failed to fetch statistics');
   }
 });
@@ -254,7 +250,7 @@ router.get('/shared/:token', async (req: AuthenticatedRequest, res: Response): P
     // TODO: Implement actual token validation and resume retrieval
     sendError(res, 501, 'Shared resume feature not implemented yet');
   } catch (error) {
-    console.error('Error fetching shared resume:', error);
+    console.error(error);
     sendError(res, 500, 'Failed to fetch shared resume');
   }
 });
@@ -275,7 +271,7 @@ router.post('/generate-pdf', async (req: AuthenticatedRequest, res: Response): P
       resumeData: validatedData 
     }, 'PDF generated successfully');
   } catch (error) {
-    console.error('Error generating PDF:', error);
+    console.error(error);
     if (error instanceof z.ZodError) {
       sendError(res, 400, 'Invalid resume data', error.errors);
       return;
@@ -301,7 +297,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
     const resume = await storage.createResume(userId, resumeData);
     sendSuccess(res, { resume }, 'Resume created successfully', 201);
   } catch (error) {
-    console.error('Error creating resume:', error);
+    console.error(error);
     if (error instanceof z.ZodError) {
       sendError(res, 400, 'Invalid data', error.errors);
       return;
@@ -329,7 +325,7 @@ router.get('/:id', async (req: AuthenticatedRequest, res: Response): Promise<voi
     
     sendSuccess(res, { resume });
   } catch (error) {
-    console.error('Error fetching resume:', error);
+    console.error(error);
     sendError(res, 500, 'Failed to fetch resume');
   }
 });
@@ -362,7 +358,7 @@ router.put('/:id', async (req: AuthenticatedRequest, res: Response): Promise<voi
     
     sendSuccess(res, { resume: updatedResume }, 'Resume updated successfully');
   } catch (error) {
-    console.error('Error updating resume:', error);
+    console.error(error);
     if (error instanceof z.ZodError) {
       sendError(res, 400, 'Invalid data', error.errors);
       return;
@@ -390,7 +386,7 @@ router.delete('/:id', async (req: AuthenticatedRequest, res: Response): Promise<
     
     sendSuccess(res, {}, 'Resume deleted successfully');
   } catch (error) {
-    console.error('Error deleting resume:', error);
+    console.error(error);
     sendError(res, 500, 'Failed to delete resume');
   }
 });
@@ -423,14 +419,15 @@ router.post('/:id/duplicate', async (req: AuthenticatedRequest, res: Response): 
     const duplicatedResume = await storage.createResume(userId, duplicateData);
     sendSuccess(res, { resume: duplicatedResume }, 'Resume duplicated successfully', 201);
   } catch (error) {
-    console.error('Error duplicating resume:', error);
+    console.error(error);
     sendError(res, 500, 'Failed to duplicate resume');
   }
 });
 
 // Error handling middleware for this router
 router.use((error: any, _req: Request, res: Response, _next: NextFunction): void => {
-  console.error('Resume routes error:', error);
+
+  console.error(error);
   
   if (error instanceof z.ZodError) {
     sendError(res, 400, 'Validation error', error.errors);

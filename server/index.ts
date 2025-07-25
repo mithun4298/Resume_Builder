@@ -10,9 +10,6 @@ const app = express();
 const server = createServer(app);
 const PORT = process.env.PORT || 5000;
 
-console.log('[SERVER] Starting server setup...');
-console.log('[SERVER] PORT:', PORT);
-console.log('[SERVER] NODE_ENV:', process.env.NODE_ENV);
 
 // Middleware
 app.use(cors({
@@ -35,7 +32,6 @@ app.use((_req, res, next) => {
 // Request logging in development
 if (process.env.NODE_ENV === 'development') {
   app.use((req, res, next) => {
-    console.log(`[SERVER] ${req.method} ${req.url}`);
     next();
   });
 }
@@ -54,19 +50,15 @@ app.get('/health', (_req, res) => {
 async function startServer() {
   try {
     // Setup authentication FIRST (this adds session middleware and auth routes)
-    console.log('[SERVER] Setting up authentication...');
     await setupAuth(app);
 
     // API routes - mount other routes under /api
-    console.log('[SERVER] Setting up API routes...');
     app.use('/api', routes);
 
     // Setup Vite in development or serve static files in production
     if (process.env.NODE_ENV === 'production') {
-      console.log('[SERVER] Setting up static file serving...');
       serveStatic(app);
     } else {
-      console.log('[SERVER] Development mode - Vite will handle static files');
     }
 
     // Error handling middleware
@@ -77,11 +69,9 @@ async function startServer() {
 
     // 404 handler for API routes
     app.use('/api/*', (_req, res) => {
-      console.log('[SERVER] 404 - API endpoint not found:', _req.originalUrl);
       res.status(404).json({ error: 'API endpoint not found' });
     });
 
-    console.log('[SERVER] Starting server on port:', PORT);
     server.listen(PORT, () => {
       console.log(`[SERVER] Server running on port ${PORT}`);
       console.log(`[SERVER] Health check: http://localhost:${PORT}/health`);
