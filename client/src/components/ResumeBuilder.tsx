@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import QuickJumpSidebar from './QuickJumpSidebar'; // Add this import
 import { CertificationSection } from './sections/CertificationSection';
 import { ProjectSection } from './sections/ProjectSection';
+import MobileFabNavigator from './MobileFabNavigator';
 
 type ResumeStep = 'personal' | 'summary' | 'experience' | 'education' | 'skills' | 'certifications' | 'projects' | 'preview';
 
@@ -31,7 +32,8 @@ interface ResumeBuilderProps {
 export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ resumeId }) => {
   const [currentStep, setCurrentStep] = useState<ResumeStep>('personal');
   const [completedSteps, setCompletedSteps] = useState<string[]>([]); // Add this state
-  
+  const [fabOpen, setFabOpen] = useState(false);
+
   const { 
     resumeData, 
     addExperience, 
@@ -161,6 +163,13 @@ export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ resumeId }) => {
 
   const handleStepClick = (step: ResumeStep) => {
     setCurrentStep(step);
+  };
+
+  const handleFabOpen = () => setFabOpen(true);
+  const handleFabClose = () => setFabOpen(false);
+  const handleFabStepClick = (step: string) => {
+    setCurrentStep(step as ResumeStep);
+    setFabOpen(false);
   };
 
   const renderCurrentStep = () => {
@@ -295,10 +304,20 @@ export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ resumeId }) => {
         <QuickJumpSidebar 
           steps={RESUME_STEPS} 
           currentStep={currentStep}  
-          onStepClick={handleStepClick}
+          onStepClick={(step: string) => setCurrentStep(step as ResumeStep)}
           completedSteps={completedSteps}
         />
       </div>
+
+      {/* Mobile FAB Navigator for quick section navigation */}
+      <MobileFabNavigator
+        open={fabOpen}
+        onOpen={handleFabOpen}
+        onClose={handleFabClose}
+        steps={RESUME_STEPS}
+        currentStep={currentStep}
+        onStepClick={handleFabStepClick}
+      />
 
       {/* Mobile Section Navigation */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
