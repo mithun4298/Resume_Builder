@@ -9,6 +9,7 @@ import { useResumeData } from '../hooks/useResumeData';
 import { cn } from '@/lib/utils';
 import QuickJumpSidebar from './QuickJumpSidebar'; // Add this import
 import { CertificationSection } from './sections/CertificationSection';
+import { ProjectSection } from './sections/ProjectSection';
 
 type ResumeStep = 'personal' | 'summary' | 'experience' | 'education' | 'skills' | 'certifications' | 'projects' | 'preview';
 
@@ -105,8 +106,15 @@ export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ resumeId }) => {
       newCompletedSteps.push('certifications');
     }
 
-    // Check Projects
-    if (resumeData.projects && resumeData.projects.length > 0) {
+    // Check Projects (all required fields must be filled)
+    if (
+      resumeData.projects &&
+      resumeData.projects.length > 0 &&
+      resumeData.projects.every(proj =>
+        proj.title && proj.title.trim() &&
+        proj.description && proj.description.trim()
+      )
+    ) {
       newCompletedSteps.push('projects');
     }
 
@@ -203,27 +211,10 @@ export const ResumeBuilder: React.FC<ResumeBuilderProps> = ({ resumeId }) => {
             );
       case 'projects':
         return (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Projects</h2>
-            <p className="text-gray-600 mb-8">Showcase your notable projects and achievements.</p>
-            <div className="text-center py-12">
-              <p className="text-gray-500">Projects section coming soon...</p>
-            </div>
-            <div className="flex justify-between mt-8">
-              <button
-                onClick={handlePrevious}
-                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-              >
-                Previous
-              </button>
-              <button
-                onClick={handleNext}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Next
-              </button>
-            </div>
-          </div>
+          <ProjectSection
+            onNext={handleNext}
+            onPrevious={handlePrevious}
+          />
         );
       case 'preview':
         return <PreviewSection onPrevious={handlePrevious} />;
