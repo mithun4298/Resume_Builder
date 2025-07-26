@@ -133,9 +133,11 @@ export default function TemplateCarousel({
     };
 
     return (
-      <div className="w-full h-full scale-50 origin-top-left transform overflow-hidden">
-        <div className="w-[210mm] h-[297mm] bg-white shadow-sm">
-          <TemplateComponent data={sampleData} accentColor={config.accentColor} />
+      <div className="w-full h-full flex flex-col items-center justify-center overflow-auto">
+        <div className="bg-white shadow-sm rounded-lg max-w-full max-h-[90vh] flex items-center justify-center">
+          <div className="w-[210mm] h-[297mm] mx-auto">
+            <TemplateComponent data={sampleData} accentColor={config.accentColor} />
+          </div>
         </div>
       </div>
     );
@@ -165,9 +167,9 @@ export default function TemplateCarousel({
     <div className={`relative w-full ${className}`}>
       {/* Main carousel container */}
       <div className="relative overflow-hidden rounded-xl bg-white shadow-lg">
-        <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[500px]">
+        <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen max-h-screen overflow-y-auto">
           {/* Template Preview */}
-          <div className="relative bg-gray-50 flex items-center justify-center p-8">
+          <div className="relative bg-gray-50 flex flex-col items-center justify-center p-8 min-h-[90vh]">
             {/* Selection indicator */}
             {isSelected && (
               <div className="absolute top-4 left-4 z-10">

@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import React, { Suspense, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Header } from "@/components";
-import { Link } from 'wouter';
+
 
 import ParticleBackground from "@/components/particle-bg";
 import TemplateCarousel from "@/components/TemplateCarousel/TemplateCarousel";
@@ -16,9 +16,6 @@ import Footer from "@/components/footer";
 import HeroSection from "@/components/landing/HeroSection";
 import FeaturesSection from "@/components/landing/FeaturesSection";
 import TemplateShowcaseSection from "@/components/landing/TemplateShowcaseSection";
-import { TemplateGrid } from '@/components/TemplateGrid';
-import { TEMPLATE_CONFIGS } from '@/data/templateData';
-
 // Loading fallback components
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center p-8">
@@ -84,42 +81,42 @@ const features = [
 
 const testimonials = [
   {
-    name: "Sarah Johnson",
+    name: "Mithun Kumar",
     role: "Software Engineer",
     company: "Google",
     content: "This resume builder helped me land my dream job at Google! The AI suggestions were spot-on and the templates are beautiful.",
     rating: 5,
   },
   {
-    name: "Michael Chen",
+    name: "Priya Patel",
     role: "Product Manager",
     company: "Microsoft",
     content: "I've tried many resume builders, but this one stands out. The real-time preview and PDF export quality are exceptional.",
     rating: 5,
   },
   {
-    name: "Emily Rodriguez",
+    name: "Kriti Singh",
     role: "UX Designer",
     company: "Apple",
     content: "The templates are gorgeous and the AI content suggestions saved me hours. Got multiple interview calls within a week!",
     rating: 5,
   },
   {
-    name: "David Kim",
+    name: "Sonu Kumar Gupta",
     role: "Data Scientist",
     company: "Netflix",
     content: "As someone who struggled with resume formatting, this tool was a game-changer. Clean, professional, and ATS-friendly.",
     rating: 5,
   },
   {
-    name: "Jessica Thompson",
+    name: "Kumar Saurav",
     role: "Marketing Manager",
     company: "Spotify",
     content: "The ease of use is incredible. I updated my resume in 15 minutes and it looks better than anything I've created before.",
     rating: 5,
   },
   {
-    name: "Alex Martinez",
+    name: "Sailesh kumar",
     role: "DevOps Engineer",
     company: "Amazon",
     content: "Finally, a resume builder that understands tech roles. The AI suggestions were relevant and the export quality is perfect.",
@@ -155,10 +152,7 @@ const stats = [
 ];
 
 export default function Landing() {
-  const { isAuthenticated, isLoading } = useAuth();
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
-
-  const featuredTemplates = TEMPLATE_CONFIGS.filter(t => t.recommended).slice(0, 3);
+  const { isAuthenticated } = useAuth();
 
   // Button logic
   const primaryButtonText = isAuthenticated ? "Go to Resume Builder" : "Get Started Free";
@@ -200,7 +194,7 @@ export default function Landing() {
       <TemplateShowcaseSection 
         title="Beautiful Templates That Stand Out"
         subtitle="Choose from our collection of professionally designed, ATS-optimized templates."
-        className="py-24"
+        className="py-8"
         templateCarouselComponent={
           <Suspense fallback={<TemplateLoadingFallback />}>
             <TemplateCarousel />
@@ -216,127 +210,9 @@ export default function Landing() {
 
       {/* CTA Section */}
       <CTASection />
-
+         
       {/* Footer Section */}
       <Footer />
-
-      {/* Featured Templates Carousel */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Professional Templates
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Choose from our collection of professionally designed templates, 
-              each optimized for different industries and career levels.
-            </p>
-          </div>
-          
-          <TemplateCarousel
-            templates={featuredTemplates}
-            onTemplateSelect={setSelectedTemplate}
-            selectedTemplate={selectedTemplate}
-            autoPlay={true}
-            autoPlayInterval={6000}
-          />
-        </div>
-      </section>
-
-      {/* All Templates Grid */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              All Templates
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Explore our complete collection of resume templates designed for every profession and style.
-            </p>
-          </div>
-
-          <TemplateGrid
-            templates={TEMPLATE_CONFIGS}
-            selectedTemplate={selectedTemplate}
-            onTemplateSelect={setSelectedTemplate}
-            columns={3}
-            showFeatures={true}
-          />
-
-          <div className="text-center mt-12">
-            <Link to="/resume-builder">
-              <Button size="lg">
-                Start with Selected Template
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Why Choose Our Resume Builder?
-            </h2>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center p-6">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-6">
-                <Zap className="w-8 h-8 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">AI-Powered</h3>
-              <p className="text-gray-600">
-                Our AI helps you write compelling content and suggests improvements 
-                to make your resume stand out to employers.
-              </p>
-            </div>
-
-            <div className="text-center p-6">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-6">
-                <FileText className="w-8 h-8 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Professional Templates</h3>
-              <p className="text-gray-600">
-                Choose from {TEMPLATE_CONFIGS.length} professionally designed templates 
-                that are ATS-friendly and recruiter-approved.
-              </p>
-            </div>
-
-            <div className="text-center p-6">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-6">
-                <Download className="w-8 h-8 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Easy Export</h3>
-              <p className="text-gray-600">
-                Download your resume as a high-quality PDF or share it online 
-                with a custom link that's always up-to-date.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-600 to-purple-600">
-        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-            Ready to Build Your Dream Resume?
-          </h2>
-          <p className="text-xl text-blue-100 mb-8">
-            Join thousands of professionals who have landed their dream jobs with our resume builder.
-          </p>
-          <Link to="/resume-builder">
-            <Button size="lg" variant="secondary" className="bg-white text-blue-600 hover:bg-gray-100">
-              Get Started for Free
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-          </Link>
-        </div>
-      </section>
     </div>
   );
 }
