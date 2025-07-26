@@ -55,13 +55,14 @@ const handleDownloadPDF = async () => {
 
   const getCompletionPercentage = () => {
     let completed = 0;
-    let total = 5;
+    let total = 6;
 
     if (resumeData.personalInfo.firstName && resumeData.personalInfo.lastName && resumeData.personalInfo.email) completed++;
     if (resumeData.summary) completed++;
     if (resumeData.experiences.length > 0) completed++;
     if (resumeData.education.length > 0) completed++;
     if (resumeData.skills.length > 0) completed++;
+    if (resumeData.certifications.length > 0) completed++;
 
     return Math.round((completed / total) * 100);
   };
@@ -183,6 +184,12 @@ const getExperienceBorderStyles = (template: string) => {
             <span>{resumeData.skills.length > 0 ? "✅" : "⭕"}</span>
             <span>Skills</span>
           </div>
+          <div className={cn(
+            "flex items-center space-x-2",
+            resumeData.certifications.length > 0 ? "text-green-600" : "text-gray-500"
+          )}>
+            <span>{resumeData.certifications.length > 0 ? "✅" : "⭕"}</span>
+            <span>Certifications</span>
         </div>
       </div>
 
@@ -237,90 +244,111 @@ const getExperienceBorderStyles = (template: string) => {
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Resume Preview</h3>
         
         {/* Mock Resume Preview */}
-        <div className="space-y-4">
-          {/* Header */}
-          <div className={getHeaderStyles(selectedTemplate)}>
-            <h1 className={cn(
-              "text-2xl font-bold",
-              selectedTemplate === 'modern' || selectedTemplate === 'creative' ? "text-white" : "text-gray-900"
-            )}>
-              {resumeData.personalInfo.firstName} {resumeData.personalInfo.lastName}
-            </h1>
-            <div className={cn(
-              "flex flex-wrap justify-center gap-4 mt-2 text-sm",
-              selectedTemplate === 'modern' || selectedTemplate === 'creative' ? "text-white" : "text-gray-600"
-            )}>
-              {resumeData.personalInfo.email && <span>{resumeData.personalInfo.email}</span>}
-              {resumeData.personalInfo.phone && <span>{resumeData.personalInfo.phone}</span>}
-              {resumeData.personalInfo.location && <span>{resumeData.personalInfo.location}</span>}
+          <div className="space-y-4">
+            {/* Header */}
+            <div className={getHeaderStyles(selectedTemplate)}>
+              <h1 className={cn(
+                "text-2xl font-bold",
+                selectedTemplate === 'modern' || selectedTemplate === 'creative' ? "text-white" : "text-gray-900"
+              )}>
+                {resumeData.personalInfo.firstName} {resumeData.personalInfo.lastName}
+              </h1>
+              <div className={cn(
+                "flex flex-wrap justify-center gap-4 mt-2 text-sm",
+                selectedTemplate === 'modern' || selectedTemplate === 'creative' ? "text-white" : "text-gray-600"
+              )}>
+                {resumeData.personalInfo.email && <span>{resumeData.personalInfo.email}</span>}
+                {resumeData.personalInfo.phone && <span>{resumeData.personalInfo.phone}</span>}
+                {resumeData.personalInfo.location && <span>{resumeData.personalInfo.location}</span>}
+              </div>
             </div>
+
+            {/* Summary */}
+            {resumeData.summary && (
+              <div>
+                <h2 className={getSectionTitleStyles(selectedTemplate)}>Professional Summary</h2>
+                <p className="text-gray-700 text-sm leading-relaxed">{resumeData.summary}</p>
+              </div>
+            )}
+
+            {/* Experience */}
+            {resumeData.experiences.length > 0 && (
+              <div>
+                <h2 className={getSectionTitleStyles(selectedTemplate)}>Work Experience</h2>
+                <div className="space-y-3">
+                  {resumeData.experiences.slice(0, 2).map((exp) => (
+                    <div key={exp.id} className={getExperienceBorderStyles(selectedTemplate)}>
+                      <h3 className="font-medium text-gray-900">{exp.position}</h3>
+                      <p className="text-sm text-gray-600">{exp.company} • {exp.startDate} - {exp.endDate || 'Present'}</p>
+                      {exp.description && (
+                        <p className="text-sm text-gray-700 mt-1">{exp.description.substring(0, 100)}...</p>
+                      )}
+                    </div>
+                  ))}
+                  {resumeData.experiences.length > 2 && (
+                    <p className="text-sm text-gray-500 italic">+ {resumeData.experiences.length - 2} more positions</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Education */}
+            {resumeData.education.length > 0 && (
+              <div>
+                <h2 className={getSectionTitleStyles(selectedTemplate)}>Education</h2>
+                <div className="space-y-2">
+                  {resumeData.education.slice(0, 2).map((edu) => (
+                    <div key={edu.id}>
+                      <h3 className="font-medium text-gray-900">{edu.degree}</h3>
+                      <p className="text-sm text-gray-600">{edu.institution} • {edu.endDate}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Skills */}
+            {resumeData.skills.length > 0 && (
+              <div>
+                <h2 className={getSectionTitleStyles(selectedTemplate)}>Skills</h2>
+                <div className="flex flex-wrap gap-2">
+                  {resumeData.skills.slice(0, 8).map((skill) => (
+                    <span
+                      key={skill.id}
+                      className={getSkillTagStyles(selectedTemplate)}
+                    >
+                      {skill.name}
+                    </span>
+                  ))}
+                  {resumeData.skills.length > 8 && (
+                    <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded">
+                      +{resumeData.skills.length - 8} more
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Certifications */}
+            {resumeData.certifications.length > 0 && (
+              <div>
+                <h2 className={getSectionTitleStyles(selectedTemplate)}>Certifications</h2>
+                <div className="space-y-2">
+                  {resumeData.certifications.slice(0, 3).map((cert) => (
+                    <div key={cert.id}>
+                      <h3 className="font-medium text-gray-900">{cert.name}</h3>
+                      <p className="text-sm text-gray-600">{cert.issuer} • {cert.date}</p>
+                    </div>
+                  ))}
+                  {resumeData.certifications.length > 3 && (
+                    <p className="text-sm text-gray-500 italic">
+                      +{resumeData.certifications.length - 3} more certifications
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
-
-          {/* Summary */}
-          {resumeData.summary && (
-            <div>
-              <h2 className={getSectionTitleStyles(selectedTemplate)}>Professional Summary</h2>
-              <p className="text-gray-700 text-sm leading-relaxed">{resumeData.summary}</p>
-            </div>
-          )}
-
-          {/* Experience */}
-          {resumeData.experiences.length > 0 && (
-            <div>
-              <h2 className={getSectionTitleStyles(selectedTemplate)}>Work Experience</h2>
-              <div className="space-y-3">
-                {resumeData.experiences.slice(0, 2).map((exp) => (
-                  <div key={exp.id} className={getExperienceBorderStyles(selectedTemplate)}>
-                    <h3 className="font-medium text-gray-900">{exp.position}</h3>
-                    <p className="text-sm text-gray-600">{exp.company} • {exp.startDate} - {exp.endDate || 'Present'}</p>
-                    {exp.description && (
-                      <p className="text-sm text-gray-700 mt-1">{exp.description.substring(0, 100)}...</p>
-                    )}
-                  </div>
-                ))}
-                {resumeData.experiences.length > 2 && (
-                  <p className="text-sm text-gray-500 italic">+ {resumeData.experiences.length - 2} more positions</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Education */}
-          {resumeData.education.length > 0 && (
-            <div>
-              <h2 className={getSectionTitleStyles(selectedTemplate)}>Education</h2>
-              <div className="space-y-2">
-                {resumeData.education.slice(0, 2).map((edu) => (
-                  <div key={edu.id}>
-                    <h3 className="font-medium text-gray-900">{edu.degree}</h3>
-                    <p className="text-sm text-gray-600">{edu.institution} • {edu.endDate}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Skills */}
-          {resumeData.skills.length > 0 && (
-            <div>
-              <h2 className={getSectionTitleStyles(selectedTemplate)}>Skills</h2>
-              <div className="flex flex-wrap gap-2">
-                {resumeData.skills.slice(0, 8).map((skill) => (
-                  <span
-                    key={skill.id}
-                    className={getSkillTagStyles(selectedTemplate)}
-                  >
-                    {skill.name}
-                  </span>
-                ))}
-                {resumeData.skills.length > 8 && (
-                  <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded">
-                    +{resumeData.skills.length - 8} more
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 

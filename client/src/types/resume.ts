@@ -49,9 +49,11 @@ export interface Project {
 }
 
 export interface Certification {
+   id: string;
   name: string;
   issuer: string;
   date: string;
+  url?: string;
 }
 
 export interface CustomSection {

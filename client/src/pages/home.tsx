@@ -244,8 +244,42 @@ const Home: React.FC = () => {
     }
   };
 
-  const handlePreviewResume = (resumeId: string) => {
-    window.open(`/preview/${resumeId}`, '_blank');
+  const handlePreviewResume = async (resumeId: string) => {
+    try {
+      if (resumeId === 'local-draft') {
+        // Handle local draft preview
+        const draftData = localStorage.getItem(LOCAL_DRAFT_KEY);
+        if (draftData) {
+          const resumeData = JSON.parse(draftData);
+          
+          // Store preview data temporarily and open preview page
+          sessionStorage.setItem('preview_resume_data', JSON.stringify(resumeData));
+          window.open('/preview?source=local', '_blank');
+        }
+      } else {
+        // Handle server resume preview
+        const response = await apiRequest("GET", `/api/resumes/${resumeId}`);
+        const resumeData = await response.json();
+        
+        // Store preview data temporarily and open preview page
+        sessionStorage.setItem('preview_resume_data', JSON.stringify(resumeData));
+        window.open(`/preview?id=${resumeId}`, '_blank');
+      }
+
+      toast({
+        title: "Preview Opened",
+        description: "Resume preview opened in a new tab.",
+        variant: "default",
+      });
+
+    } catch (error) {
+      console.error('Preview error:', error);
+      toast({
+        title: "Preview Failed",
+        description: "Failed to open resume preview. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

@@ -4,6 +4,8 @@ import { apiRequest } from '@/lib/queryClient';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import { Button } from '@/components/ui/button';
+import { Download, ArrowLeft, Share2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface Resume {
   id: string;
@@ -20,6 +22,8 @@ const PreviewPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [location] = useLocation();
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
 
   // Extract resumeId from URL (/preview/:id)
   const getResumeId = () => {
@@ -47,6 +51,47 @@ const PreviewPage: React.FC = () => {
       .finally(() => setLoading(false));
   }, [location]);
 
+  const handleDownload = async () => {
+    if (!resume) return;
+
+    try {
+      const response = await fetch('/api/resumes/generate-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(resume),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `${resume.data?.personalInfo?.firstName || 'Resume'}_Preview.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Download Complete",
+        description: "Resume downloaded successfully.",
+        variant: "default",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to download resume.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Header />
@@ -57,6 +102,19 @@ const PreviewPage: React.FC = () => {
           <div className="text-center text-red-500">{error}</div>
         ) : resume ? (
           <div className="w-full max-w-3xl bg-white rounded-lg shadow-lg p-8 mb-8">
+            <div className="flex justify-between items-center mb-4">
+              <Button variant="ghost" onClick={() => navigate('/')}>
+                <ArrowLeft className="mr-2" /> Back
+              </Button>
+              <div className="flex space-x-2">
+                <Button onClick={handleDownload}>
+                  <Download className="mr-2" /> Download
+                </Button>
+                <Button>
+                  <Share2 className="mr-2" /> Share
+                </Button>
+              </div>
+            </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2 text-center">{resume.title}</h1>
             <div className="text-sm text-gray-500 mb-6 text-center">Last updated: {new Date(resume.updatedAt).toLocaleString()}</div>
             {/* Render resume sections here. Replace with your actual resume template component if available. */}
