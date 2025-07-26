@@ -74,8 +74,8 @@ export default function Header({ children }: HeaderProps) {
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => navigate("/builder")}
-                    className={`text-white/80 hover:text-white hover:bg-white/10 ${location === "/builder" ? "bg-white/20" : ""}`}
+                    onClick={() => navigate("/resume-builder")}
+                    className={`text-white/80 hover:text-white hover:bg-white/10 ${location === "/resume-builder" ? "bg-white/20" : ""}`}
                   >
                     <FileIcon className="w-4 h-4 mr-1" />
                     Builder
@@ -92,8 +92,8 @@ export default function Header({ children }: HeaderProps) {
                   <Button 
                     variant="ghost" 
                     size="sm"
-                    onClick={() => navigate("/my-resumes")}
-                    className={`text-white/80 hover:text-white hover:bg-white/10 ${location === "/my-resumes" ? "bg-white/20" : ""}`}
+                    onClick={() => navigate("/home")}
+                    className={`text-white/80 hover:text-white hover:bg-white/10 ${location === "/home" ? "bg-white/20" : ""}`}
                   >
                     <FolderOpen className="w-4 h-4 mr-1" />
                     My Resumes

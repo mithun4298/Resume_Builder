@@ -5,7 +5,8 @@ import { Toaster } from '@/components/ui/toaster';
 import Home from '@/pages/home';
 import Landing from '@/pages/landing';
 import NotFound from '@/pages/not-found';
-import ResumeBuilderPage from '@/pages/resume-builder'; // Changed from 'ResumeBuilder' to 'ResumeBuilderPage'
+import ResumeBuilderPage from '@/pages/resume-builder';
+import Templates from '@/pages/templates';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,7 +24,8 @@ function App() {
         <Switch>
           <Route path="/" component={Landing} />
           <Route path="/home" component={Home} />
-          <Route path="/resume-builder" component={ResumeBuilderPage} /> {/* Changed from 'ResumeBuilder' to 'ResumeBuilderPage' */}
+          <Route path="/resume-builder" component={ResumeBuilderPage} />
+          <Route path="/templates" component={Templates} />
           <Route component={NotFound} />
         </Switch>
       </Router>

@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Star, FileText, Sparkles, Download, Users, Zap, ShieldCheck, LayoutGrid, Smile, CheckCircle, TrendingUp, Award, Clock, Globe } from "lucide-react";
 import { motion } from "framer-motion";
 import React, { Suspense } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { Header } from "@/components";
 
 import ParticleBackground from "@/components/particle-bg";
@@ -151,11 +152,19 @@ const stats = [
 ];
 
 export default function Landing() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Button logic
+  const primaryButtonText = isAuthenticated ? "Go to Resume Builder" : "Get Started Free";
+  const primaryButtonAction = isAuthenticated
+    ? () => (window.location.href = "/resume-builder")
+    : () => (window.location.href = "/api/login");
+
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 overflow-x-hidden">
       {/* Header component */}
       <Header />
-      
+
       {/* Particle Background with lazy loading */}
       <Suspense fallback={null}>
         <ParticleBackground />
@@ -166,8 +175,8 @@ export default function Landing() {
         title="Your Next Job Starts Here"
         subtitle="Beautiful, {keywords} Resumes in Minutes"
         description="Build a beautiful, professional resume in minutes with AI-powered guidance and modern design."
-        primaryButtonText="Get Started Free"
-        primaryButtonAction={() => (window.location.href = "/api/login")}
+        primaryButtonText={primaryButtonText}
+        primaryButtonAction={primaryButtonAction}
         showAnimatedKeywords={true}
         animatedWords={["Smart", "Professional", "Modern", "AI-Powered"]}
       />
