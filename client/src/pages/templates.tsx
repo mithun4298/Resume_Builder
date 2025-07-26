@@ -5,153 +5,33 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
-import { Search, Eye, Plus, Star, Filter, Grid, List, Sparkles, ArrowRight } from "lucide-react";
-import { ClassicTemplate } from "@/components/resume-templates/ClassicTemplate";
-import { MinimalTemplate } from "@/components/resume-templates/MinimalTemplate";
-import { CreativeTemplate } from "@/components/resume-templates/CreativeTemplate";
-import { ModernProfessionalTemplate } from "@/components/resume-templates/ModernProfessionalTemplate";
-import TwoColumnTemplate from "@/components/resume-templates/TwoColumnTemplate";
-import { ExecutiveTemplate } from "@/components/resume-templates/ExecutiveTemplate";
+import { Search, Eye, Plus, Star, Filter, Grid, List, Sparkles, Check, Download, X } from "lucide-react";
+import { TEMPLATE_CONFIGS, TemplateConfig } from "@/data/templateData";
+import { TEMPLATE_REGISTRY } from "@/components/resume-templates";
 
-// Template data structure
+// Define Template interface if not already defined
 interface Template {
   id: string;
   name: string;
   description: string;
   category: string;
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  difficulty: string;
   features: string[];
-  preview: string;
-  popular: boolean;
-  new: boolean;
-  component: React.ComponentType<any>;
+  suitableFor: string[];
+  accentColor: string;
+  recommended?: boolean;
+  preview?: string;
 }
 
-// Sample resume data for previews
-const sampleResumeData = {
-  personalInfo: {
-    firstName: "John",
-    lastName: "Doe",
-    title: "Software Engineer",
-    email: "john.doe@email.com",
-    phone: "(555) 123-4567",
-    location: "San Francisco, CA",
-    website: "johndoe.dev"
-  },
-  summary: "Experienced software engineer with 5+ years developing scalable web applications...",
-  experience: [
-    {
-      title: "Senior Software Engineer",
-      company: "Tech Corp",
-      startDate: "2022",
-      endDate: "Present",
-      current: true,
-      bullets: [
-        "Led development of microservices architecture serving 1M+ users",
-        "Improved application performance by 40% through optimization"
-      ]
-    }
-  ],
-  education: [
-    {
-      degree: "Bachelor of Science",
-      field: "Computer Science",
-      institution: "University of Technology",
-      startDate: "2016",
-      endDate: "2020",
-      gpa: "3.8"
-    }
-  ],
-  skills: {
-    technical: ["JavaScript", "React", "Node.js", "Python", "AWS"],
-    soft: ["Leadership", "Communication", "Problem Solving"]
-  },
-  projects: [],
-  certifications: []
-};
-
-// Available templates
-const templates: Template[] = [
-  {
-    id: "classic",
-    name: "Classic Professional",
-    description: "Clean and traditional design perfect for corporate environments",
-    category: "Professional",
-    difficulty: "Beginner",
-    features: ["ATS-Friendly", "Clean Layout", "Professional"],
-    preview: "/api/templates/classic/preview.png",
-    popular: true,
-    new: false,
-    component: ClassicTemplate
-  },
-  {
-    id: "minimal",
-    name: "Minimal Template",
-    description: "Simple and clean layout for modern resumes.",
-    category: "Creative",
-    difficulty: "Beginner",
-    features: ["Minimal Design", "Clean", "Modern"],
-    preview: "/api/templates/minimal/preview.png",
-    popular: true,
-    new: false,
-    component: MinimalTemplate
-  },
-  {
-    id: "creative",
-    name: "Creative Template",
-    description: "Colorful and creative layout for standout resumes.",
-    category: "Creative",
-    difficulty: "Intermediate",
-    features: ["Creative Design", "Colorful", "Unique"],
-    preview: "/api/templates/creative/preview.png",
-    popular: false,
-    new: true,
-    component: CreativeTemplate
-  },
-  {
-    id: "modern",
-    name: "Modern Professional",
-    description: "Contemporary design with professional accents.",
-    category: "Professional",
-    difficulty: "Intermediate",
-    features: ["Modern Design", "Professional", "Eye-catching"],
-    preview: "/api/templates/modern/preview.png",
-    popular: true,
-    new: false,
-    component: ModernProfessionalTemplate
-  },
-  {
-    id: "two-column",
-    name: "Two Column Pro",
-    description: "Efficient two-column layout maximizing space utilization",
-    category: "Professional",
-    difficulty: "Beginner",
-    features: ["Two Column", "Space Efficient", "Organized"],
-    preview: "/api/templates/two-column/preview.png",
-    popular: false,
-    new: false,
-    component: TwoColumnTemplate
-  },
-  {
-    id: "executive",
-    name: "Executive Template",
-    description: "Premium design for senior executives and leadership positions",
-    category: "Executive",
-    difficulty: "Advanced",
-    features: ["Luxury Design", "Executive Level", "Premium"],
-    preview: "/api/templates/executive/preview.png",
-    popular: false,
-    new: true,
-    component: ExecutiveTemplate
-  }
-];
+// Use TEMPLATE_CONFIGS as the templates data
+const templates: Template[] = TEMPLATE_CONFIGS;
 
 export default function Templates() {
   const [, navigate] = useLocation();
@@ -166,6 +46,7 @@ export default function Templates() {
   const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
   const [newResumeTitle, setNewResumeTitle] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   // Get unique categories and difficulties
   const categories = ["all", ...new Set(templates.map(t => t.category))];
@@ -218,16 +99,12 @@ export default function Templates() {
       });
     },
     onSuccess: async (response) => {
-      const resJson = await response.json();
-      const resumeId = resJson?.data?.resume?.id;
-      console.log(resumeId);
+      const resume = await response.json();
       queryClient.invalidateQueries({ queryKey: ["/api/resumes"] });
-      
-      setTimeout(() => {
-        console.log('🔍 Actually navigating now...');
-        navigate(`/resume-builder?id=${resumeId}`);
-      }, 100);
-      
+      setCreateDialogOpen(false);
+      setNewResumeTitle("");
+      setSelectedTemplateId("");
+      navigate(`/resume/${resume.id}`);
       toast({
         title: "Success",
         description: "New resume created successfully!",
@@ -244,7 +121,7 @@ export default function Templates() {
 
   const handleUseTemplate = (templateId: string) => {
     setSelectedTemplateId(templateId);
-    setNewResumeTitle("");
+    setCreateDialogOpen(true);
   };
 
   const handleCreateResume = () => {
@@ -263,6 +140,99 @@ export default function Templates() {
     });
   };
 
+  const handlePreviewTemplate = (template: Template) => {
+    setPreviewTemplate(template);
+  };
+
+  const renderTemplatePreview = (config: Template, isFullPreview = false) => {
+    const TemplateComponent = TEMPLATE_REGISTRY[config.id];
+    
+    if (!TemplateComponent) {
+      return (
+        <div className="w-full h-full bg-gray-100 flex items-center justify-center rounded-lg">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-gray-200 rounded-lg mb-2 mx-auto"></div>
+            <span className="text-gray-500 text-sm">{config.name}</span>
+          </div>
+        </div>
+      );
+    }
+
+    // Sample data for preview
+    const sampleData = {
+      personalInfo: {
+        firstName: 'John',
+        lastName: 'Doe',
+        title: 'Software Engineer',
+        email: 'john.doe@email.com',
+        phone: '(555) 123-4567',
+        location: 'San Francisco, CA',
+        website: 'johndoe.dev'
+      },
+      summary: 'Experienced software engineer with 5+ years of experience in full-stack development.',
+      experience: [
+        {
+          id: '1',
+          title: 'Senior Software Engineer',
+          company: 'Tech Corp',
+          startDate: '2020',
+          endDate: 'Present',
+          current: true,
+          location: 'San Francisco, CA',
+          description: 'Lead development of web applications',
+          bullets: [
+            'Built scalable web applications serving 100k+ users',
+            'Led team of 5 developers in agile environment'
+          ],
+          dates: '2020 - Present'
+        }
+      ],
+      skills: {
+        technical: ['JavaScript', 'React', 'Node.js', 'Python'],
+        soft: ['Leadership', 'Communication', 'Problem Solving', 'Teamwork']
+      },
+      education: [
+        {
+          id: '1',
+          degree: 'BS Computer Science',
+          school: 'University of Technology',
+          startDate: '2015',
+          endDate: '2019'
+        }
+      ],
+      projects: [
+        {
+          id: '1',
+          name: 'E-commerce Platform',
+          description: 'Built full-stack e-commerce platform with React and Node.js',
+          technologies: ['React', 'Node.js', 'MongoDB'],
+          url: 'https://github.com/johndoe/ecommerce'
+        }
+      ]
+    };
+
+    if (isFullPreview) {
+      return (
+        <div className="w-full h-full max-w-4xl mx-auto overflow-auto">
+          <div className="bg-white shadow-lg rounded-lg p-4">
+            <div className="w-full max-w-[210mm] mx-auto">
+              <TemplateComponent data={sampleData} accentColor={config.accentColor} />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="w-full h-48 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 bg-white rounded-lg mb-2 mx-auto opacity-80"></div>
+          <div className="text-gray-600 text-sm font-medium">{config.name}</div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Header />
@@ -278,37 +248,6 @@ export default function Templates() {
               Choose from our collection of professionally designed templates. 
               Each template is crafted to help you stand out and land your dream job.
             </p>
-            <div className="mt-6 flex justify-center">
-              <Badge variant="secondary" className="text-sm">
-                {templates.length} Templates Available
-              </Badge>
-            </div>
-          </div>
-
-          {/* Stats Section */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white rounded-lg p-6 text-center shadow-sm border">
-              <div className="text-3xl font-bold text-blue-600 mb-2">{templates.length}</div>
-              <div className="text-sm text-gray-600">Total Templates</div>
-            </div>
-            <div className="bg-white rounded-lg p-6 text-center shadow-sm border">
-              <div className="text-3xl font-bold text-green-600 mb-2">
-                {templates.filter(t => t.popular).length}
-              </div>
-              <div className="text-sm text-gray-600">Popular Templates</div>
-            </div>
-            <div className="bg-white rounded-lg p-6 text-center shadow-sm border">
-              <div className="text-3xl font-bold text-purple-600 mb-2">
-                {categories.length - 1}
-              </div>
-              <div className="text-sm text-gray-600">Categories</div>
-            </div>
-            <div className="bg-white rounded-lg p-6 text-center shadow-sm border">
-              <div className="text-3xl font-bold text-orange-600 mb-2">
-                {templates.filter(t => t.new).length}
-              </div>
-              <div className="text-sm text-gray-600">New Templates</div>
-            </div>
           </div>
 
           {/* Filters and Search */}
@@ -378,11 +317,11 @@ export default function Templates() {
                 {viewMode === "grid" ? (
                   <>
                     <div className="relative">
-                      {template.popular && (
+                      {template.recommended && (
                         <div className="absolute top-2 left-2 z-10">
                           <Badge variant="default" className="bg-blue-600">
                             <Star className="w-3 h-3 mr-1" />
-                            Popular
+                            Recommended
                           </Badge>
                         </div>
                       )}
@@ -394,9 +333,7 @@ export default function Templates() {
                         </div>
                       )}
                       <div className="aspect-[3/4] bg-gray-100 rounded-t-lg overflow-hidden">
-                        <div className="w-full h-full flex items-center justify-center text-gray-400">
-                          <template.component data={sampleResumeData} scale={0.2} />
-                        </div>
+                        {renderTemplatePreview(template)}
                       </div>
                     </div>
                     <CardHeader className="pb-2">
@@ -431,7 +368,7 @@ export default function Templates() {
                           variant="outline"
                           size="sm"
                           className="flex-1"
-                          onClick={() => setPreviewTemplate(template)}
+                          onClick={() => handlePreviewTemplate(template)}
                         >
                           <Eye className="w-4 h-4 mr-2" />
                           Preview
@@ -451,10 +388,10 @@ export default function Templates() {
                   <>
                     <div className="w-48 flex-shrink-0">
                       <div className="aspect-[3/4] bg-gray-100 rounded-l-lg overflow-hidden relative">
-                        {template.popular && (
+                        {template.recommended && (
                           <div className="absolute top-2 left-2 z-10">
                             <Badge variant="default" className="bg-blue-600 text-xs">
-                              Popular
+                              Recommended
                             </Badge>
                           </div>
                         )}
@@ -465,9 +402,7 @@ export default function Templates() {
                             </Badge>
                           </div>
                         )}
-                        <div className="w-full h-full flex items-center justify-center text-gray-400">
-                          <template.component data={sampleResumeData} scale={0.15} />
-                        </div>
+                        {renderTemplatePreview(template)}
                       </div>
                     </div>
                     <div className="flex-1 p-6">
@@ -493,7 +428,7 @@ export default function Templates() {
                       <div className="flex gap-2">
                         <Button
                           variant="outline"
-                          onClick={() => setPreviewTemplate(template)}
+                          onClick={() => handlePreviewTemplate(template)}
                         >
                           <Eye className="w-4 h-4 mr-2" />
                           Preview
@@ -522,10 +457,10 @@ export default function Templates() {
               <DialogTitle className="flex items-center justify-between">
                 <span>{previewTemplate.name}</span>
                 <div className="flex items-center gap-2">
-                  {previewTemplate.popular && (
+                  {previewTemplate.recommended && (
                     <Badge variant="default" className="bg-blue-600">
                       <Star className="w-3 h-3 mr-1" />
-                      Popular
+                      Recommended
                     </Badge>
                   )}
                   {previewTemplate.new && (
@@ -548,11 +483,7 @@ export default function Templates() {
                 </div>
               </div>
               <div className="border rounded-lg overflow-hidden bg-white">
-                <div className="transform scale-75 origin-top-left" style={{ width: '133.33%', height: '133.33%' }}>
-                  {previewTemplate.component && (
-                    <previewTemplate.component data={sampleResumeData} />
-                  )}
-                </div>
+                {renderTemplatePreview(previewTemplate, true)}
               </div>
               <div className="mt-6 flex justify-between items-center">
                 <div className="flex items-center gap-4">
@@ -587,8 +518,8 @@ export default function Templates() {
       )}
 
       {/* Create Resume Dialog */}
-      {selectedTemplateId && (
-        <Dialog open={!!selectedTemplateId} onOpenChange={() => setSelectedTemplateId("")}>
+      {createDialogOpen && (
+        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create New Resume</DialogTitle>

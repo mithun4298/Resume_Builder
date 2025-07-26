@@ -1,13 +1,14 @@
+
 import { Button } from "@/components/ui/button";
 import { Star, FileText, Sparkles, Download, Users, Zap, ShieldCheck, LayoutGrid, Smile, CheckCircle, TrendingUp, Award, Clock, Globe, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import React, { Suspense, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Header } from "@/components";
-
+import { useLocation } from "wouter";
 
 import ParticleBackground from "@/components/particle-bg";
-import TemplateCarousel from "@/components/TemplateCarousel/TemplateCarousel";
+import TemplateCarousel from "@/components/TemplateCarousel";
 import TestimonialsSection from "@/components/landing/TestimonialsSection";
 import StatsSection from "@/components/landing/StatsSection";
 import CTASection from "@/components/landing/CTASection";
@@ -16,12 +17,16 @@ import Footer from "@/components/footer";
 import HeroSection from "@/components/landing/HeroSection";
 import FeaturesSection from "@/components/landing/FeaturesSection";
 import TemplateShowcaseSection from "@/components/landing/TemplateShowcaseSection";
+
 // Loading fallback components
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center p-8">
     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
   </div>
 );
+
+// REMOVE THIS LINE - Don't call useLocation outside component
+// const [navigate] = useLocation();
 
 const TemplateLoadingFallback = () => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -153,11 +158,12 @@ const stats = [
 
 export default function Landing() {
   const { isAuthenticated } = useAuth();
+  const [, navigate] = useLocation(); // ADD COMMA HERE!
 
-  // Button logic
+  // Button logic - UPDATE TO USE NAVIGATE
   const primaryButtonText = isAuthenticated ? "Go to Resume Builder" : "Get Started Free";
   const primaryButtonAction = isAuthenticated
-    ? () => (window.location.href = "/resume-builder")
+    ? () => navigate("/resume-builder") // Use navigate instead of window.location.href
     : () => (window.location.href = "/api/login");
 
   return (
@@ -197,7 +203,16 @@ export default function Landing() {
         className="py-8"
         templateCarouselComponent={
           <Suspense fallback={<TemplateLoadingFallback />}>
-            <TemplateCarousel />
+            <TemplateCarousel 
+              onTemplateSelect={(templateId) => {
+                console.log('Template selected from landing:', templateId);
+                navigate(`/resume-builder?template=${templateId}`);
+              }}
+              onPreviewTemplate={(templateId) => {
+                console.log('Template previewed from landing:', templateId);
+                alert(`Previewing template: ${templateId}`);
+              }}
+            />
           </Suspense>
         }
       />

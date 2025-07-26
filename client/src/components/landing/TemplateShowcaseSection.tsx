@@ -8,6 +8,7 @@ interface TemplateShowcaseSectionProps {
   sectionId?: string;
   className?: string;
   backgroundColor?: string;
+  templateCarouselComponent?: React.ReactNode; 
 }
 
 // Loading fallback for template carousel
@@ -25,7 +26,8 @@ export default function TemplateShowcaseSection({
   subtitle = "Choose from our collection of professionally designed, ATS-optimized templates.",
   sectionId = "templates",
   className = "",
-  backgroundColor = "bg-white"
+  backgroundColor = "bg-white",
+  templateCarouselComponent
 }: TemplateShowcaseSectionProps) {
   return (
     <section 

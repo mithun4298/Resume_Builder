@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Eye, Download, Star, Check } from "lucide-react";
+import { useLocation } from "wouter"; // ADD THIS IMPORT
 import { TEMPLATE_CONFIGS, TemplateConfig } from "@/data/templateData";
 import { TEMPLATE_REGISTRY } from "@/components/resume-templates";
 
@@ -11,6 +12,7 @@ interface TemplateCarouselProps {
   autoPlayInterval?: number;
   className?: string;
   onTemplateSelect?: (templateId: string) => void;
+  onPreviewTemplate?: (templateId: string) => void;
   selectedTemplate?: string;
   showActions?: boolean;
 }
@@ -21,10 +23,12 @@ export default function TemplateCarousel({
   autoPlayInterval = 5000,
   className = "",
   onTemplateSelect,
+  onPreviewTemplate,
   selectedTemplate,
   showActions = true
 }: TemplateCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [, navigate] = useLocation(); // ADD THIS HOOK
 
   // Auto-play functionality
   useEffect(() => {
@@ -52,9 +56,28 @@ export default function TemplateCarousel({
     setCurrentIndex(index);
   };
 
+  // UPDATE THIS FUNCTION TO INCLUDE NAVIGATION
   const handleTemplateSelect = (templateId: string) => {
+    console.log('Navigating to resume builder with template:', templateId);
+
+    // Call the callback if provided
     if (onTemplateSelect) {
       onTemplateSelect(templateId);
+    }
+
+    // Navigate to resume builder with template parameter
+    navigate(`/resume-builder?template=${templateId}`);
+  };
+
+  // ADD THIS FUNCTION FOR PREVIEW
+  const handlePreviewTemplate = (templateId: string) => {
+    console.log('Preview clicked for template:', templateId);
+
+    if (onPreviewTemplate) {
+      onPreviewTemplate(templateId);
+    } else {
+      // Default preview behavior - could open in modal or navigate to preview page
+      navigate(`/resume-builder?template=${templateId}&preview=true`);
     }
   };
 
@@ -67,7 +90,7 @@ export default function TemplateCarousel({
 
   const renderTemplatePreview = (config: TemplateConfig) => {
     const TemplateComponent = TEMPLATE_REGISTRY[config.id];
-    
+
     if (!TemplateComponent) {
       return (
         <div className="w-full h-full bg-gray-100 flex items-center justify-center rounded-lg">
@@ -82,13 +105,13 @@ export default function TemplateCarousel({
     // Sample data for preview
     const sampleData = {
       personalInfo: {
-        firstName: 'Alex',
-        lastName: 'Johnson',
+        firstName: 'Mithun',
+        lastName: 'Kumar',
         title: 'Product Manager',
-        email: 'alex.johnson@email.com',
+        email: 'mithun.kumar@email.com',
         phone: '(555) 987-6543',
         location: 'New York, NY',
-        website: 'alexjohnson.com'
+        website: 'mithunkumar.com'
       },
       summary: 'Results-driven product manager with 7+ years of experience leading cross-functional teams and delivering innovative solutions.',
       experience: [
@@ -118,13 +141,15 @@ export default function TemplateCarousel({
           degree: 'MBA, Business Administration',
           school: 'Business School',
           startDate: '2016',
-          endDate: '2018'
+          endDate: '2018',
+          dates: '2016 - 2018'
         }
       ],
       projects: [
         {
           id: '1',
           name: 'Customer Analytics Platform',
+          title: 'Lead Developer',
           description: 'Led development of analytics platform serving 50k+ users',
           technologies: ['Product Strategy', 'User Research', 'Analytics'],
           url: 'https://company.com/analytics'
@@ -209,13 +234,17 @@ export default function TemplateCarousel({
                     items-center justify-center opacity-0 hover:opacity-100"
                   >
                     <div className="flex gap-2">
-                      <Button size="sm" variant="secondary">
+                      <Button 
+                        size="sm" 
+                        variant="secondary"
+                        onClick={() => handlePreviewTemplate(currentTemplate.id)} // UPDATE THIS
+                      >
                         <Eye className="w-4 h-4 mr-2" />
                         Preview
                       </Button>
                       <Button 
                         size="sm"
-                        onClick={() => handleTemplateSelect(currentTemplate.id)}
+                        onClick={() => handleTemplateSelect(currentTemplate.id)} // THIS IS CORRECT
                         className={isSelected ? 'bg-green-600 hover:bg-green-700' : ''}
                       >
                         {isSelected ? (
@@ -260,7 +289,7 @@ export default function TemplateCarousel({
                     </span>
                     {currentTemplate.recommended && (
                       <span className="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
-                        <Star className="w-3 h-3" />
+                                              <Star className="w-3 h-3" />
                         Recommended
                       </span>
                     )}
@@ -305,7 +334,7 @@ export default function TemplateCarousel({
                   <div className="flex gap-3">
                     <Button 
                       className="flex-1"
-                      onClick={() => handleTemplateSelect(currentTemplate.id)}
+                      onClick={() => handleTemplateSelect(currentTemplate.id)} // UPDATE THIS
                       variant={isSelected ? 'default' : 'secondary'}
                     >
                       {isSelected ? (
@@ -320,7 +349,10 @@ export default function TemplateCarousel({
                         </>
                       )}
                     </Button>
-                    <Button variant="outline">
+                    <Button 
+                      variant="outline"
+                      onClick={() => handlePreviewTemplate(currentTemplate.id)} // UPDATE THIS
+                    >
                       <Eye className="w-4 h-4 mr-2" />
                       Preview
                     </Button>
@@ -378,4 +410,4 @@ export default function TemplateCarousel({
       )}
     </div>
   );
-}
+}  
