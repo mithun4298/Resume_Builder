@@ -55,7 +55,7 @@ const handleDownloadPDF = async () => {
 
   const getCompletionPercentage = () => {
     let completed = 0;
-    let total = 6;
+    let total = 7;
 
     if (resumeData.personalInfo.firstName && resumeData.personalInfo.lastName && resumeData.personalInfo.email) completed++;
     if (resumeData.summary) completed++;
@@ -63,6 +63,14 @@ const handleDownloadPDF = async () => {
     if (resumeData.education.length > 0) completed++;
     if (resumeData.skills.length > 0) completed++;
     if (resumeData.certifications.length > 0) completed++;
+    if (
+      resumeData.projects &&
+      resumeData.projects.length > 0 &&
+      resumeData.projects.every(proj =>
+        proj.title && proj.title.trim() &&
+        proj.description && proj.description.trim()
+      )
+    ) completed++;
 
     return Math.round((completed / total) * 100);
   };
@@ -190,7 +198,14 @@ const getExperienceBorderStyles = (template: string) => {
           )}>
             <span>{resumeData.certifications.length > 0 ? "✅" : "⭕"}</span>
             <span>Certifications</span>
-        </div>
+          </div>
+          <div className={cn(
+            "flex items-center space-x-2",
+            resumeData.projects && resumeData.projects.length > 0 && resumeData.projects.every(proj => proj.title && proj.title.trim() && proj.description && proj.description.trim()) ? "text-green-600" : "text-gray-500"
+          )}>
+            <span>{resumeData.projects && resumeData.projects.length > 0 && resumeData.projects.every(proj => proj.title && proj.title.trim() && proj.description && proj.description.trim()) ? "✅" : "⭕"}</span>
+            <span>Projects</span>
+          </div>
       </div>
 
       {/* Template Selection */}
@@ -343,6 +358,31 @@ const getExperienceBorderStyles = (template: string) => {
                   {resumeData.certifications.length > 3 && (
                     <p className="text-sm text-gray-500 italic">
                       +{resumeData.certifications.length - 3} more certifications
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Projects */}
+            {resumeData.projects && resumeData.projects.length > 0 && (
+              <div>
+                <h2 className={getSectionTitleStyles(selectedTemplate)}>Projects</h2>
+                <div className="space-y-2">
+                  {resumeData.projects.slice(0, 3).map((proj) => (
+                    <div key={proj.id}>
+                      <h3 className="font-medium text-gray-900">{proj.title}</h3>
+                      <p className="text-sm text-gray-600">{proj.description}</p>
+                      {proj.url && (
+                        <a href={proj.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-xs">
+                          {proj.url}
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                  {resumeData.projects.length > 3 && (
+                    <p className="text-sm text-gray-500 italic">
+                      +{resumeData.projects.length - 3} more projects
                     </p>
                   )}
                 </div>

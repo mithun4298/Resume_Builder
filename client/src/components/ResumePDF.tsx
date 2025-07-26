@@ -249,6 +249,40 @@ export const ResumePDF: React.FC<ResumePDFProps> = ({ resumeData, template = 'mo
             </View>
           </View>
         )}
+        {/* Certifications */}
+        {resumeData.certifications && resumeData.certifications.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>CERTIFICATIONS</Text>
+            {resumeData.certifications.map((cert: any, index: number) => (
+              <View key={index} style={{ marginBottom: 8 }}>
+                <Text style={styles.itemTitle}>{cert.name}</Text>
+                {cert.issuer && (
+                  <Text style={styles.itemSubtitle}>{cert.issuer}</Text>
+                )}
+                {cert.date && (
+                  <Text style={styles.text}>{cert.date}</Text>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
+        {/* Projects */}
+        {resumeData.projects && resumeData.projects.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>PROJECTS</Text>
+            {resumeData.projects.map((proj: any, index: number) => (
+              <View key={index} style={{ marginBottom: 10 }}>
+                <Text style={styles.itemTitle}>{proj.title}</Text>
+                {proj.url && (
+                  <Text style={styles.itemSubtitle}>{proj.url}</Text>
+                )}
+                {proj.description && (
+                  <Text style={styles.text}>{proj.description}</Text>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
       </Page>
     </Document>
   );

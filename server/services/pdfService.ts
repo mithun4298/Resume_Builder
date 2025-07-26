@@ -20,6 +20,24 @@ export class PDFService {
         this.addExperience(doc, data);
         this.addEducation(doc, data);
         this.addSkills(doc, data);
+        this.addProjects(doc, data);
+
+  addProjects(doc, data) {
+    let yPosition = 650;
+    if (data.projects && data.projects.length > 0) {
+      doc.fontSize(16).text('Projects', 50, yPosition);
+      yPosition += 20;
+      data.projects.forEach(function(proj) {
+        doc.fontSize(14).text(proj.title, 50, yPosition);
+        doc.fontSize(12).text(proj.description, 50, yPosition + 15, { width: 500 });
+        if (proj.url) {
+          doc.fontSize(10).fillColor('blue').text(proj.url, 50, yPosition + 30, { width: 500, link: proj.url, underline: true });
+          doc.fillColor('black');
+        }
+        yPosition += 60;
+      });
+    }
+  }
 
         doc.end();
       } catch (error) {
@@ -47,7 +65,7 @@ export class PDFService {
     }
   }
 
-  private addExperience(doc: InstanceType<typeof PDFDocument>, data: ResumeData): void {
+  addExperience(doc, data) {
     let yPosition = 200;
     doc.fontSize(16).text('Experience', 50, yPosition);
     yPosition += 20;
@@ -56,7 +74,6 @@ export class PDFService {
       doc.fontSize(14).text(exp.title, 50, yPosition);
       doc.fontSize(12).text(exp.company, 50, yPosition + 15);
       doc.fontSize(11).text(`${this.formatDate(exp.startDate)} - ${exp.endDate ? this.formatDate(exp.endDate) : 'Present'}`, 50, yPosition + 30);
-      
       // Use bullets instead of description
       if (exp.bullets && exp.bullets.length > 0) {
         let bulletY = yPosition + 45;
@@ -65,12 +82,11 @@ export class PDFService {
           bulletY += 15;
         });
       }
-      
       yPosition += 80;
     });
   }
 
-  private addEducation(doc: InstanceType<typeof PDFDocument>, data: ResumeData): void {
+  addEducation(doc, data) {
     let yPosition = 400;
     doc.fontSize(16).text('Education', 50, yPosition);
     yPosition += 20;
