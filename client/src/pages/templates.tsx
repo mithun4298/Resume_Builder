@@ -5,14 +5,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
-import { Search, Eye, Plus, Star, Filter, Grid, List, Sparkles } from "lucide-react";
+import { Search, Eye, Plus, Star, Filter, Grid, List, Sparkles, ArrowRight } from "lucide-react";
+import { ClassicTemplate } from "@/components/resume-templates/ClassicTemplate";
+import { MinimalTemplate } from "@/components/resume-templates/MinimalTemplate";
+import { CreativeTemplate } from "@/components/resume-templates/CreativeTemplate";
+import { ModernProfessionalTemplate } from "@/components/resume-templates/ModernProfessionalTemplate";
+import TwoColumnTemplate from "@/components/resume-templates/TwoColumnTemplate";
+import { ExecutiveTemplate } from "@/components/resume-templates/ExecutiveTemplate";
 
 // Template data structure
 interface Template {
@@ -27,14 +33,6 @@ interface Template {
   new: boolean;
   component: React.ComponentType<any>;
 }
-
-// Import your template components
-import ClassicTemplate from "@/components/resume-templates/ClassicTemplate";
-import ModernTemplate from "@/components/resume-templates/ModernTemplate";
-import BoldTemplate from "@/components/resume-templates/BoldTemplate";
-import ElegantTemplate from "@/components/resume-templates/ElegantTemplate";
-import TwoColumnTemplate from "@/components/resume-templates/TwoColumnTemplate";
-import ExecutiveLuxury from "@/components/resume-templates/ExecutiveLuxury";
 
 // Sample resume data for previews
 const sampleResumeData = {
@@ -94,40 +92,40 @@ const templates: Template[] = [
     component: ClassicTemplate
   },
   {
-    id: "modern",
-    name: "Modern Minimalist",
-    description: "Contemporary design with clean lines and modern typography",
+    id: "minimal",
+    name: "Minimal Template",
+    description: "Simple and clean layout for modern resumes.",
+    category: "Creative",
+    difficulty: "Beginner",
+    features: ["Minimal Design", "Clean", "Modern"],
+    preview: "/api/templates/minimal/preview.png",
+    popular: true,
+    new: false,
+    component: MinimalTemplate
+  },
+  {
+    id: "creative",
+    name: "Creative Template",
+    description: "Colorful and creative layout for standout resumes.",
     category: "Creative",
     difficulty: "Intermediate",
-    features: ["Modern Design", "Minimalist", "Eye-catching"],
+    features: ["Creative Design", "Colorful", "Unique"],
+    preview: "/api/templates/creative/preview.png",
+    popular: false,
+    new: true,
+    component: CreativeTemplate
+  },
+  {
+    id: "modern",
+    name: "Modern Professional",
+    description: "Contemporary design with professional accents.",
+    category: "Professional",
+    difficulty: "Intermediate",
+    features: ["Modern Design", "Professional", "Eye-catching"],
     preview: "/api/templates/modern/preview.png",
     popular: true,
     new: false,
-    component: ModernTemplate
-  },
-  {
-    id: "bold",
-    name: "Bold Impact",
-    description: "Strong visual hierarchy with bold typography and striking design",
-    category: "Creative",
-    difficulty: "Advanced",
-    features: ["Bold Typography", "High Impact", "Creative"],
-    preview: "/api/templates/bold/preview.png",
-    popular: false,
-    new: true,
-    component: BoldTemplate
-  },
-  {
-    id: "elegant",
-    name: "Elegant Classic",
-    description: "Sophisticated design with elegant typography and refined layout",
-    category: "Professional",
-    difficulty: "Intermediate",
-    features: ["Elegant Design", "Sophisticated", "Refined"],
-    preview: "/api/templates/elegant/preview.png",
-    popular: true,
-    new: false,
-    component: ElegantTemplate
+    component: ModernProfessionalTemplate
   },
   {
     id: "two-column",
@@ -143,7 +141,7 @@ const templates: Template[] = [
   },
   {
     id: "executive",
-    name: "Executive Luxury",
+    name: "Executive Template",
     description: "Premium design for senior executives and leadership positions",
     category: "Executive",
     difficulty: "Advanced",
@@ -151,7 +149,7 @@ const templates: Template[] = [
     preview: "/api/templates/executive/preview.png",
     popular: false,
     new: true,
-    component: ExecutiveLuxury
+    component: ExecutiveTemplate
   }
 ];
 
@@ -221,17 +219,18 @@ export default function Templates() {
     },
     onSuccess: async (response) => {
       const resJson = await response.json();
-const resumeId = resJson?.data?.resume?.id;
+      const resumeId = resJson?.data?.resume?.id;
       console.log(resumeId);
       queryClient.invalidateQueries({ queryKey: ["/api/resumes"] });
+      
       setTimeout(() => {
-    console.log('🔍 Actually navigating now...');
-    navigate(`/resume-builder?id=${resumeId}`);
-  }, 100);
-     // navigate(`/resume-builder?id=${resume.id}`);
+        console.log('🔍 Actually navigating now...');
+        navigate(`/resume-builder?id=${resumeId}`);
+      }, 100);
+      
       toast({
         title: "Success",
-        description: "New resume  created successfully!",
+        description: "New resume created successfully!",
       });
     },
     onError: () => {
@@ -279,6 +278,37 @@ const resumeId = resJson?.data?.resume?.id;
               Choose from our collection of professionally designed templates. 
               Each template is crafted to help you stand out and land your dream job.
             </p>
+            <div className="mt-6 flex justify-center">
+              <Badge variant="secondary" className="text-sm">
+                {templates.length} Templates Available
+              </Badge>
+            </div>
+          </div>
+
+          {/* Stats Section */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white rounded-lg p-6 text-center shadow-sm border">
+              <div className="text-3xl font-bold text-blue-600 mb-2">{templates.length}</div>
+              <div className="text-sm text-gray-600">Total Templates</div>
+            </div>
+            <div className="bg-white rounded-lg p-6 text-center shadow-sm border">
+              <div className="text-3xl font-bold text-green-600 mb-2">
+                {templates.filter(t => t.popular).length}
+              </div>
+              <div className="text-sm text-gray-600">Popular Templates</div>
+            </div>
+            <div className="bg-white rounded-lg p-6 text-center shadow-sm border">
+              <div className="text-3xl font-bold text-purple-600 mb-2">
+                {categories.length - 1}
+              </div>
+              <div className="text-sm text-gray-600">Categories</div>
+            </div>
+            <div className="bg-white rounded-lg p-6 text-center shadow-sm border">
+              <div className="text-3xl font-bold text-orange-600 mb-2">
+                {templates.filter(t => t.new).length}
+              </div>
+              <div className="text-sm text-gray-600">New Templates</div>
+            </div>
           </div>
 
           {/* Filters and Search */}
@@ -342,49 +372,142 @@ const resumeId = resJson?.data?.resume?.id;
           </div>
 
           {/* Templates Grid/List */}
-          <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 ${viewMode === "list" ? "sm:grid-cols-1" : ""}`}>
+          <div className={`grid gap-6 ${viewMode === "grid" ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4" : "grid-cols-1"}`}>
             {filteredTemplates.map(template => (
-              <Card key={template.id} className="relative">
-                <CardHeader>
-                  <CardTitle>{template.name}</CardTitle>
-                  <div className="flex items-center gap-2 mt-2">
-                    {template.popular && <Badge variant="secondary">Popular</Badge>}
-                    {template.new && <Badge variant="secondary">New</Badge>}
-                  </div>
-                </CardHeader>
-                <CardContent className="relative">
-                  <img src={template.preview} alt={`${template.name} Preview`} className="w-full h-48 object-cover rounded-lg" />
-                  <div className="mt-4">
-                    <p className="text-sm text-gray-600">{template.description}</p>
-                    <div className="mt-2 flex items-center gap-2">
-                      <Star className="w-4 h-4 text-yellow-400" />
-                      <span className="text-sm text-gray-600">{template.difficulty}</span>
+              <Card key={template.id} className={`group hover:shadow-lg transition-all duration-200 ${viewMode === "list" ? "flex flex-row" : ""}`}>
+                {viewMode === "grid" ? (
+                  <>
+                    <div className="relative">
+                      {template.popular && (
+                        <div className="absolute top-2 left-2 z-10">
+                          <Badge variant="default" className="bg-blue-600">
+                            <Star className="w-3 h-3 mr-1" />
+                            Popular
+                          </Badge>
+                        </div>
+                      )}
+                      {template.new && (
+                        <div className="absolute top-2 right-2 z-10">
+                          <Badge variant="secondary" className="bg-green-600 text-white">
+                            New
+                          </Badge>
+                        </div>
+                      )}
+                      <div className="aspect-[3/4] bg-gray-100 rounded-t-lg overflow-hidden">
+                        <div className="w-full h-full flex items-center justify-center text-gray-400">
+                          <template.component data={sampleResumeData} scale={0.2} />
+                        </div>
+                      </div>
                     </div>
-                    <div className="mt-2 flex items-center gap-2">
-                      {template.features.map(feature => (
-                        <Badge key={feature} variant="outline">{feature}</Badge>
-                      ))}
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg">{template.name}</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          {template.category}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {template.difficulty}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                        {template.description}
+                      </p>
+                      <div className="flex flex-wrap gap-1 mb-4">
+                        {template.features.slice(0, 3).map(feature => (
+                          <Badge key={feature} variant="secondary" className="text-xs">
+                            {feature}
+                          </Badge>
+                        ))}
+                        {template.features.length > 3 && (
+                          <Badge variant="secondary" className="text-xs">
+                            +{template.features.length - 3} more
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => setPreviewTemplate(template)}
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          Preview
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => handleUseTemplate(template.id)}
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Use Template
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-48 flex-shrink-0">
+                      <div className="aspect-[3/4] bg-gray-100 rounded-l-lg overflow-hidden relative">
+                        {template.popular && (
+                          <div className="absolute top-2 left-2 z-10">
+                            <Badge variant="default" className="bg-blue-600 text-xs">
+                              Popular
+                            </Badge>
+                          </div>
+                        )}
+                        {template.new && (
+                          <div className="absolute top-2 right-2 z-10">
+                            <Badge variant="secondary" className="bg-green-600 text-white text-xs">
+                              New
+                            </Badge>
+                          </div>
+                        )}
+                        <div className="w-full h-full flex items-center justify-center text-gray-400">
+                          <template.component data={sampleResumeData} scale={0.15} />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="absolute bottom-4 right-4">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setPreviewTemplate(template)}
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      Preview
-                    </Button>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => handleUseTemplate(template.id)}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Use Template
-                    </Button>
-                  </div>
-                </CardContent>
+                    <div className="flex-1 p-6">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                            {template.name}
+                          </h3>
+                          <div className="flex items-center gap-2 mb-3">
+                            <Badge variant="outline">{template.category}</Badge>
+                            <Badge variant="outline">{template.difficulty}</Badge>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-gray-600 mb-4">{template.description}</p>
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {template.features.map(feature => (
+                          <Badge key={feature} variant="secondary" className="text-xs">
+                            {feature}
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => setPreviewTemplate(template)}
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          Preview
+                        </Button>
+                        <Button
+                          onClick={() => handleUseTemplate(template.id)}
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Use Template
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </Card>
             ))}
           </div>
@@ -393,13 +516,71 @@ const resumeId = resJson?.data?.resume?.id;
 
       {/* Preview Dialog */}
       {previewTemplate && (
-        <Dialog open={!!previewTemplate} onOpenChange={setPreviewTemplate}>
-          <DialogContent className="max-w-5xl">
+        <Dialog open={!!previewTemplate} onOpenChange={() => setPreviewTemplate(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{previewTemplate.name}</DialogTitle>
+              <DialogTitle className="flex items-center justify-between">
+                <span>{previewTemplate.name}</span>
+                <div className="flex items-center gap-2">
+                  {previewTemplate.popular && (
+                    <Badge variant="default" className="bg-blue-600">
+                      <Star className="w-3 h-3 mr-1" />
+                      Popular
+                    </Badge>
+                  )}
+                  {previewTemplate.new && (
+                    <Badge variant="secondary" className="bg-green-600 text-white">
+                      New
+                    </Badge>
+                  )}
+                </div>
+              </DialogTitle>
             </DialogHeader>
             <div className="mt-4">
-              <previewTemplate.component data={sampleResumeData} />
+              <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600 mb-2">{previewTemplate.description}</p>
+                <div className="flex flex-wrap gap-2">
+                  {previewTemplate.features.map(feature => (
+                    <Badge key={feature} variant="outline" className="text-xs">
+                      {feature}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+              <div className="border rounded-lg overflow-hidden bg-white">
+                <div className="transform scale-75 origin-top-left" style={{ width: '133.33%', height: '133.33%' }}>
+                  {previewTemplate.component && (
+                    <previewTemplate.component data={sampleResumeData} />
+                  )}
+                </div>
+              </div>
+              <div className="mt-6 flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                  <div className="text-sm text-gray-600">
+                    <span className="font-medium">Category:</span> {previewTemplate.category}
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    <span className="font-medium">Difficulty:</span> {previewTemplate.difficulty}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setPreviewTemplate(null)}
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setPreviewTemplate(null);
+                      handleUseTemplate(previewTemplate.id);
+                    }}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Use This Template
+                  </Button>
+                </div>
+              </div>
             </div>
           </DialogContent>
         </Dialog>

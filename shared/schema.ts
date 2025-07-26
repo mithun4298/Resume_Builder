@@ -67,6 +67,8 @@ export const resumeSchema = z.object({
     phone: z.string(),
     location: z.string().optional(),
     website: z.string().optional(),
+    github: z.string().optional(),
+    linkedin: z.string().optional(),
   }),
   summary: z.string(),
   experience: z.array(z.object({
@@ -89,18 +91,26 @@ export const resumeSchema = z.object({
   skills: z.object({
     technical: z.array(z.string()),
     soft: z.array(z.string()),
+    primary: z.array(z.string()).optional(),
+    secondary: z.array(z.string()).optional(),
   }),
   projects: z.array(z.object({
+    id: z.string(),
     name: z.string(),
+    title: z.string(),
     description: z.string(),
-    technologies: z.array(z.string()),
+    technologies: z.array(z.string()).optional(),
     url: z.string().optional(),
+    dates: z.string().optional(),
   })),
   certifications: z.array(z.object({
+    id: z.string(),
     name: z.string(),
-    issuer: z.string(),
-    date: z.string(),
+    issuer: z.string().optional(),
+    date: z.string().optional(),
     url: z.string().optional(),
+    description: z.string().optional(),
+    dates: z.string().optional(),
   })),
   sectionOrder: z.array(z.enum([
     "personal",

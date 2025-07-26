@@ -15,10 +15,7 @@ export { Button } from './ui/button';
 // export { Collapsible, CollapsibleTrigger, CollapsibleContent } from './ui/collapsible';
 
 // Resume Templates
-export { default as ModernTemplate } from './resume-templates/ModernTemplate';
-export { default as ClassicTemplate } from './resume-templates/ClassicTemplate';
-export { default as BoldTemplate } from './resume-templates/BoldTemplate';
-export { default as MinimalExecutive } from './resume-templates/MinimalExecutive';
+export { ClassicTemplate } from './resume-templates/ClassicTemplate';
 
 // Dashboard Components
 export { default as EnhancedHero } from './dashboard/EnhancedHero';

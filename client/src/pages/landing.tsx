@@ -1,9 +1,10 @@
 import { Button } from "@/components/ui/button";
-import { Star, FileText, Sparkles, Download, Users, Zap, ShieldCheck, LayoutGrid, Smile, CheckCircle, TrendingUp, Award, Clock, Globe } from "lucide-react";
+import { Star, FileText, Sparkles, Download, Users, Zap, ShieldCheck, LayoutGrid, Smile, CheckCircle, TrendingUp, Award, Clock, Globe, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
-import React, { Suspense } from "react";
+import React, { Suspense, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Header } from "@/components";
+import { Link } from 'wouter';
 
 import ParticleBackground from "@/components/particle-bg";
 import TemplateCarousel from "@/components/TemplateCarousel/TemplateCarousel";
@@ -15,6 +16,8 @@ import Footer from "@/components/footer";
 import HeroSection from "@/components/landing/HeroSection";
 import FeaturesSection from "@/components/landing/FeaturesSection";
 import TemplateShowcaseSection from "@/components/landing/TemplateShowcaseSection";
+import { TemplateGrid } from '@/components/TemplateGrid';
+import { TEMPLATE_CONFIGS } from '@/data/templateData';
 
 // Loading fallback components
 const LoadingSpinner = () => (
@@ -153,6 +156,9 @@ const stats = [
 
 export default function Landing() {
   const { isAuthenticated, isLoading } = useAuth();
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+
+  const featuredTemplates = TEMPLATE_CONFIGS.filter(t => t.recommended).slice(0, 3);
 
   // Button logic
   const primaryButtonText = isAuthenticated ? "Go to Resume Builder" : "Get Started Free";
@@ -213,6 +219,124 @@ export default function Landing() {
 
       {/* Footer Section */}
       <Footer />
+
+      {/* Featured Templates Carousel */}
+      <section className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Professional Templates
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Choose from our collection of professionally designed templates, 
+              each optimized for different industries and career levels.
+            </p>
+          </div>
+          
+          <TemplateCarousel
+            templates={featuredTemplates}
+            onTemplateSelect={setSelectedTemplate}
+            selectedTemplate={selectedTemplate}
+            autoPlay={true}
+            autoPlayInterval={6000}
+          />
+        </div>
+      </section>
+
+      {/* All Templates Grid */}
+      <section className="py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              All Templates
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Explore our complete collection of resume templates designed for every profession and style.
+            </p>
+          </div>
+
+          <TemplateGrid
+            templates={TEMPLATE_CONFIGS}
+            selectedTemplate={selectedTemplate}
+            onTemplateSelect={setSelectedTemplate}
+            columns={3}
+            showFeatures={true}
+          />
+
+          <div className="text-center mt-12">
+            <Link to="/resume-builder">
+              <Button size="lg">
+                Start with Selected Template
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Why Choose Our Resume Builder?
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="text-center p-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-6">
+                <Zap className="w-8 h-8 text-blue-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">AI-Powered</h3>
+              <p className="text-gray-600">
+                Our AI helps you write compelling content and suggests improvements 
+                to make your resume stand out to employers.
+              </p>
+            </div>
+
+            <div className="text-center p-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-6">
+                <FileText className="w-8 h-8 text-green-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Professional Templates</h3>
+              <p className="text-gray-600">
+                Choose from {TEMPLATE_CONFIGS.length} professionally designed templates 
+                that are ATS-friendly and recruiter-approved.
+              </p>
+            </div>
+
+            <div className="text-center p-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-6">
+                <Download className="w-8 h-8 text-purple-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Easy Export</h3>
+              <p className="text-gray-600">
+                Download your resume as a high-quality PDF or share it online 
+                with a custom link that's always up-to-date.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 bg-gradient-to-r from-blue-600 to-purple-600">
+        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+            Ready to Build Your Dream Resume?
+          </h2>
+          <p className="text-xl text-blue-100 mb-8">
+            Join thousands of professionals who have landed their dream jobs with our resume builder.
+          </p>
+          <Link to="/resume-builder">
+            <Button size="lg" variant="secondary" className="bg-white text-blue-600 hover:bg-gray-100">
+              Get Started for Free
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

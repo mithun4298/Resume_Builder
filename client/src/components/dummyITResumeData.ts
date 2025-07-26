@@ -9,7 +9,8 @@ export const dummyITResumeData: ResumeData = {
     phone: "+1 (555) 123-4567",
     location: "San Francisco, CA",
     website: "linkedin.com/in/johndoe",
-    github: "github.com/johndoe"
+    github: "github.com/johndoe",
+    linkedin: "linkedin.com/in/johndoe"
   },
   summary: "<p>Experienced software engineer with 5+ years of experience in full-stack development, specializing in React, Node.js, and cloud technologies.</p>",
   experience: [
@@ -52,34 +53,52 @@ export const dummyITResumeData: ResumeData = {
     ],
     soft: [
       "Agile Leadership", "Mentoring", "Problem Solving", "Communication"
+    ],
+    primary: [
+      "React", "Node.js", "TypeScript", "AWS"
+    ],
+    secondary: [
+      "Docker", "Git", "Python", "Jest", "GraphQL"
     ]
   },
   certifications: [
     {
+      id: "1",
       name: "AWS Certified Solutions Architect",
       issuer: "Amazon Web Services",
       date: "2022-05",
-      url: "https://aws.amazon.com/certification/"
+      dates: "2022-05",
+      url: "https://aws.amazon.com/certification/",
+      description: "AWS Solutions Architect certification."
     },
     {
+      id: "2",
       name: "Certified Kubernetes Administrator",
       issuer: "CNCF",
       date: "2023-01",
-      url: "https://www.cncf.io/certification/cka/"
+      dates: "2023-01",
+      url: "https://www.cncf.io/certification/cka/",
+      description: "Kubernetes Administrator certification."
     }
   ],
   projects: [
     {
+      id: "1",
       name: "DevOps Dashboard",
-      description: "<ul><li>Built a real-time dashboard for monitoring CI/CD pipelines and cloud resources.</li><li>Stack: React, Node.js, AWS Lambda, DynamoDB.</li></ul>",
+      title: "DevOps Dashboard",
+      description: "Built a real-time dashboard for monitoring CI/CD pipelines and cloud resources.",
       technologies: ["React", "Node.js", "AWS Lambda", "DynamoDB"],
-      url: "https://github.com/alexjohnson/devops-dashboard"
+      url: "https://github.com/alexjohnson/devops-dashboard",
+      dates: "2022"
     },
     {
+      id: "2",
       name: "Open Source CLI Tool",
-      description: "<ul><li>Created a CLI for automating deployment workflows.</li><li>Published on npm with 1k+ downloads.</li></ul>",
+      title: "Open Source CLI Tool",
+      description: "Created a CLI for automating deployment workflows. Published on npm with 1k+ downloads.",
       technologies: ["Node.js", "TypeScript"],
-      url: "https://github.com/alexjohnson/cli-tool"
+      url: "https://github.com/alexjohnson/cli-tool",
+      dates: "2021"
     }
   ],
   sectionOrder: [
@@ -90,5 +109,5 @@ export const dummyITResumeData: ResumeData = {
     "education",
     "certifications",
     "projects"
-  ] as Array<"personal" | "summary" | "experience" | "skills" | "education" | "certifications" | "projects">
+  ]
 };

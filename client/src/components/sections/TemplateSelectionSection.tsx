@@ -1,61 +1,14 @@
 import React, { useState } from 'react';
 import { useResumeData } from '@/hooks/useResumeData';
+import { TEMPLATE_CONFIGS, TemplateConfig } from '@/data/templateData';
+import { TEMPLATE_REGISTRY } from '@/components/resume-templates';
+import { Button } from '@/components/ui/button';
+import { Eye, Check, Grid, Monitor, Star, ArrowLeft, ArrowRight } from 'lucide-react';
 
 interface TemplateSelectionSectionProps {
   onNext: () => void;
   onPrevious: () => void;
 }
-
-const TEMPLATES = [
-  {
-    id: 'modern',
-    name: 'Modern',
-    description: 'Clean and contemporary design with subtle colors',
-    preview: '/templates/modern-preview.png',
-    features: ['Clean layout', 'Professional colors', 'Easy to read'],
-    recommended: true
-  },
-  {
-    id: 'classic',
-    name: 'Classic',
-    description: 'Traditional format preferred by conservative industries',
-    preview: '/templates/classic-preview.png',
-    features: ['Traditional layout', 'Black & white', 'ATS-friendly'],
-    recommended: false
-  },
-  {
-    id: 'minimalist',
-    name: 'Minimalist',
-    description: 'Simple and elegant with focus on content',
-    preview: '/templates/minimalist-preview.png',
-    features: ['Minimal design', 'Lots of white space', 'Typography focused'],
-    recommended: false
-  },
-  {
-    id: 'elegant',
-    name: 'Elegant',
-    description: 'Sophisticated design with refined typography',
-    preview: '/templates/elegant-preview.png',
-    features: ['Sophisticated look', 'Premium fonts', 'Balanced layout'],
-    recommended: false
-  },
-  {
-    id: 'bold',
-    name: 'Bold',
-    description: 'Eye-catching design for creative professionals',
-    preview: '/templates/bold-preview.png',
-    features: ['Creative layout', 'Bold typography', 'Color accents'],
-    recommended: false
-  },
-  {
-    id: 'two-column',
-    name: 'Two Column',
-    description: 'Efficient layout with sidebar for skills and contact',
-    preview: '/templates/two-column-preview.png',
-    features: ['Two-column layout', 'Sidebar design', 'Space efficient'],
-    recommended: false
-  }
-];
 
 export const TemplateSelectionSection: React.FC<TemplateSelectionSectionProps> = ({
   onNext,
@@ -67,102 +20,201 @@ export const TemplateSelectionSection: React.FC<TemplateSelectionSectionProps> =
   );
   const [previewMode, setPreviewMode] = useState<'grid' | 'single'>('grid');
 
- const handleTemplateSelect = (templateId: string) => {
-  setSelectedTemplate(templateId);
-  selectTemplate(templateId); // <-- Correct usage
-};
+  const handleTemplateSelect = (templateId: string) => {
+    setSelectedTemplate(templateId);
+    selectTemplate(templateId);
+  };
 
-  const selectedTemplateData = TEMPLATES.find(t => t.id === selectedTemplate);
+  const selectedTemplateConfig = TEMPLATE_CONFIGS.find(t => t.id === selectedTemplate);
+
+  const renderTemplatePreview = (config: TemplateConfig, isLarge = false) => {
+    const TemplateComponent = TEMPLATE_REGISTRY[config.id];
+    
+    if (!TemplateComponent) {
+      return (
+        <div className="w-full h-full bg-gray-100 flex items-center justify-center rounded-lg">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-gray-200 rounded-lg mb-2 mx-auto"></div>
+            <span className="text-gray-500 text-sm">{config.name}</span>
+          </div>
+        </div>
+      );
+    }
+
+    // Sample data for preview
+    const sampleData = {
+      personalInfo: {
+        firstName: 'John',
+        lastName: 'Doe',
+        title: 'Software Engineer',
+        email: 'john.doe@email.com',
+        phone: '(555) 123-4567',
+        location: 'San Francisco, CA',
+        website: 'johndoe.dev'
+      },
+      summary: 'Experienced software engineer with 5+ years of experience in full-stack development and team leadership.',
+      experience: [
+        {
+          id: '1',
+          title: 'Senior Software Engineer',
+          company: 'Tech Corp',
+          startDate: '2020',
+          endDate: 'Present',
+          current: true,
+          location: 'San Francisco, CA',
+          description: 'Led development of web applications using React and Node.js',
+          bullets: [
+            'Built scalable web applications serving 100k+ users',
+            'Mentored junior developers and improved team productivity by 30%'
+          ]
+        }
+      ],
+      skills: {
+        technical: ['React', 'TypeScript', 'Node.js', 'Python'],
+        soft: ['Leadership', 'Communication', 'Problem Solving']
+      },
+      education: [
+        {
+          id: '1',
+          degree: 'Computer Science, BS',
+          school: 'University of Technology',
+          startDate: '2014',
+          endDate: '2018'
+        }
+      ],
+      projects: [
+        {
+          id: '1',
+          name: 'E-commerce Platform',
+          description: 'Full-stack e-commerce solution with React and Node.js',
+          technologies: ['React', 'Node.js', 'MongoDB'],
+          url: 'https://github.com/johndoe/ecommerce'
+        }
+      ]
+    };
+
+    const scale = isLarge ? 'scale-75' : 'scale-50';
+    
+    return (
+      <div className={`w-full h-full ${scale} origin-top-left transform overflow-hidden`}>
+        <div className="w-[210mm] h-[297mm] bg-white shadow-sm">
+          <TemplateComponent data={sampleData} accentColor={config.accentColor} />
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <div className="template-selection-section p-4 space-y-6">
+    <div className="template-selection-section p-6 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+      <div className="text-center mb-8">
+        <h2 className="text-3xl font-bold text-gray-900 mb-3">
           Choose Your Template
         </h2>
-        <p className="text-gray-600">
-          Select a professional template that matches your style
+        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          Select a professional template that matches your style and industry. 
+          All templates are ATS-friendly and optimized for modern hiring systems.
         </p>
       </div>
 
       {/* View Mode Toggle */}
-      <div className="flex justify-center mb-6">
+      <div className="flex justify-center mb-8">
         <div className="bg-gray-100 p-1 rounded-lg">
           <button
             onClick={() => setPreviewMode('grid')}
-            className={`px-4 py-2 rounded-md font-medium transition-all duration-200 ${
+            className={`px-6 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 ${
               previewMode === 'grid'
                 ? 'bg-white text-blue-600 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
+            <Grid className="w-4 h-4" />
             Grid View
           </button>
           <button
             onClick={() => setPreviewMode('single')}
-            className={`px-4 py-2 rounded-md font-medium transition-all duration-200 ${
+            className={`px-6 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 ${
               previewMode === 'single'
                 ? 'bg-white text-blue-600 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            Preview
+            <Monitor className="w-4 h-4" />
+            Live Preview
           </button>
         </div>
       </div>
 
       {previewMode === 'grid' ? (
         /* Grid View */
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {TEMPLATES.map((template) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {TEMPLATE_CONFIGS.map((config) => (
             <div
-              key={template.id}
-              onClick={() => handleTemplateSelect(template.id)}
-              className={`relative cursor-pointer rounded-xl border-2 transition-all duration-200 ${
-                selectedTemplate === template.id
-                  ? 'border-blue-500 bg-blue-50'
+              key={config.id}
+              onClick={() => handleTemplateSelect(config.id)}
+              className={`relative cursor-pointer rounded-xl border-2 transition-all duration-200 hover:shadow-lg group ${
+                selectedTemplate === config.id
+                  ? 'border-blue-500 bg-blue-50 shadow-lg'
                   : 'border-gray-200 hover:border-gray-300'
               }`}
             >
               {/* Recommended Badge */}
-              {template.recommended && (
+              {config.recommended && (
                 <div className="absolute top-3 right-3 z-10">
-                  <span className="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                  <span className="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
+                    <Star className="w-3 h-3" />
                     Recommended
                   </span>
                 </div>
               )}
 
-              {/* Template Preview */}
-              <div className="aspect-[3/4] bg-gray-100 rounded-t-xl overflow-hidden">
-                <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-white rounded-lg mb-2 mx-auto opacity-80"></div>
-                    <div className="text-gray-600 font-medium">{template.name}</div>
+              {/* Selection Indicator */}
+              {selectedTemplate === config.id && (
+                <div className="absolute top-3 left-3 z-10">
+                  <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                    <Check className="w-4 h-4 text-white" />
                   </div>
                 </div>
+              )}
+
+              {/* Template Preview */}
+              <div className="aspect-[3/4] bg-gray-50 rounded-t-xl overflow-hidden">
+                {renderTemplatePreview(config)}
               </div>
 
               {/* Template Info */}
               <div className="p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-gray-900">{template.name}</h3>
-                  {selectedTemplate === template.id && (
-                    <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                  )}
+                  <h3 className="font-semibold text-gray-900">{config.name}</h3>
+                  <span 
+                    className="text-xs px-2 py-1 rounded-full"
+                    style={{ backgroundColor: config.accentColor + '20', color: config.accentColor }}
+                  >
+                    {config.category}
+                  </span>
                 </div>
-                <p className="text-sm text-gray-600 mb-3">{template.description}</p>
+                <p className="text-sm text-gray-600 mb-3">{config.description}</p>
                 
+                {/* Suitable For */}
+                <div className="mb-3">
+                  <p className="text-xs font-medium text-gray-700 mb-1">Best for:</p>
+                  <div className="flex flex-wrap gap-1">
+                    {config.suitableFor.slice(0, 2).map((role, index) => (
+                      <span key={index} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                        {role}
+                      </span>
+                    ))}
+                    {config.suitableFor.length > 2 && (
+                      <span className="text-xs text-gray-500">+{config.suitableFor.length - 2} more</span>
+                    )}
+                  </div>
+                </div>
+
                 {/* Features */}
                 <div className="space-y-1">
-                  {template.features.map((feature, index) => (
+                  {config.features.slice(0, 3).map((feature, index) => (
                     <div key={index} className="flex items-center text-xs text-gray-500">
-                      <svg className="w-3 h-3 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
+                      <Check className="w-3 h-3 text-green-500 mr-2" />
                       {feature}
                     </div>
                   ))}
@@ -176,65 +228,61 @@ export const TemplateSelectionSection: React.FC<TemplateSelectionSectionProps> =
         <div className="space-y-6">
           {/* Template Selector */}
           <div className="flex overflow-x-auto space-x-3 pb-2">
-            {TEMPLATES.map((template) => (
+            {TEMPLATE_CONFIGS.map((config) => (
               <button
-                key={template.id}
-                onClick={() => handleTemplateSelect(template.id)}
-                className={`flex-shrink-0 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                  selectedTemplate === template.id
-                    ? 'bg-blue-600 text-white'
+                key={config.id}
+                onClick={() => handleTemplateSelect(config.id)}
+                className={`flex-shrink-0 px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${
+                  selectedTemplate === config.id
+                    ? 'text-white shadow-md'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
+                style={selectedTemplate === config.id ? { backgroundColor: config.accentColor } : {}}
               >
-                {template.name}
+                {config.recommended && <Star className="w-3 h-3" />}
+                {config.name}
               </button>
             ))}
           </div>
 
           {/* Large Preview */}
-          {selectedTemplateData && (
+          {selectedTemplateConfig && (
             <div className="bg-white rounded-xl border-2 border-gray-200 overflow-hidden">
               {/* Preview Header */}
-              <div className="p-4 border-b border-gray-200">
+              <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      {selectedTemplateData.name} Template
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      {selectedTemplateData.description}
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-xl font-semibold text-gray-900">
+                        {selectedTemplateConfig.name}
+                      </h3>
+                      {selectedTemplateConfig.recommended && (
+                        <span className="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
+                          <Star className="w-3 h-3" />
+                          Recommended
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-gray-600">
+                      {selectedTemplateConfig.description}
                     </p>
                   </div>
-                  {selectedTemplateData.recommended && (
-                    <span className="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded-full">
-                      Recommended
-                    </span>
-                  )}
+                  <div></div>
                 </div>
               </div>
 
               {/* Large Preview Area */}
               <div className="aspect-[3/4] bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-24 h-24 bg-white rounded-xl mb-4 mx-auto shadow-lg"></div>
-                  <h4 className="text-xl font-bold text-gray-900 mb-2">
-                    {selectedTemplateData.name} Preview
-                  </h4>
-                  <p className="text-gray-600 max-w-xs">
-                    This is how your resume will look with the {selectedTemplateData.name.toLowerCase()} template
-                  </p>
-                </div>
+                {renderTemplatePreview(selectedTemplateConfig, true)}
               </div>
 
               {/* Template Features */}
               <div className="p-4 border-t border-gray-200">
                 <h4 className="font-semibold text-gray-900 mb-3">Template Features:</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {selectedTemplateData.features.map((feature, index) => (
+                  {selectedTemplateConfig.features.map((feature, index) => (
                     <div key={index} className="flex items-center text-sm text-gray-600">
-                      <svg className="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
+                      <Check className="w-4 h-4 text-green-500 mr-2" />
                       {feature}
                     </div>
                   ))}
@@ -258,7 +306,7 @@ export const TemplateSelectionSection: React.FC<TemplateSelectionSectionProps> =
       </div>
 
       {/* Selected Template Summary */}
-      {selectedTemplateData && (
+      {selectedTemplateConfig && (
         <div className="bg-white border-2 border-blue-200 rounded-xl p-4">
           <div className="flex items-center space-x-3">
             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -268,10 +316,10 @@ export const TemplateSelectionSection: React.FC<TemplateSelectionSectionProps> =
             </div>
             <div>
               <h4 className="font-semibold text-gray-900">
-                Selected: {selectedTemplateData.name} Template
+                Selected: {selectedTemplateConfig.name} Template
               </h4>
               <p className="text-sm text-gray-600">
-                {selectedTemplateData.description}
+                {selectedTemplateConfig.description}
               </p>
             </div>
           </div>
@@ -285,13 +333,15 @@ export const TemplateSelectionSection: React.FC<TemplateSelectionSectionProps> =
             onClick={onPrevious}
             className="flex-1 py-4 px-6 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-all duration-200"
           >
-            ← Previous
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Previous
           </button>
           <button
             onClick={onNext}
             className="flex-1 py-4 px-6 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all duration-200"
           >
-            Preview Resume →
+            Preview Resume
+            <ArrowRight className="w-4 h-4 ml-2" />
           </button>
         </div>
       </div>

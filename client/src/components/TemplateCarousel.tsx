@@ -1,32 +1,28 @@
 import React, { useState, useEffect } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Eye, Download } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-
-interface Template {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  difficulty: string;
-  preview: string;
-  features: string[];
-  popular?: boolean;
-  new?: boolean;
-}
+import { ChevronLeft, ChevronRight, Eye, Download, Star, Check } from "lucide-react";
+import { TEMPLATE_CONFIGS, TemplateConfig } from "@/data/templateData";
+import { TEMPLATE_REGISTRY } from "@/components/resume-templates";
 
 interface TemplateCarouselProps {
-  templates?: Template[];
+  templates?: TemplateConfig[];
   autoPlay?: boolean;
   autoPlayInterval?: number;
   className?: string;
+  onTemplateSelect?: (templateId: string) => void;
+  selectedTemplate?: string;
+  showActions?: boolean;
 }
 
 export default function TemplateCarousel({
-  templates = [],
+  templates = TEMPLATE_CONFIGS,
   autoPlay = true,
   autoPlayInterval = 5000,
-  className = ""
+  className = "",
+  onTemplateSelect,
+  selectedTemplate,
+  showActions = true
 }: TemplateCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -56,12 +52,94 @@ export default function TemplateCarousel({
     setCurrentIndex(index);
   };
 
+  const handleTemplateSelect = (templateId: string) => {
+    if (onTemplateSelect) {
+      onTemplateSelect(templateId);
+    }
+  };
+
   // Reset currentIndex if it's out of bounds
   useEffect(() => {
     if (templates && templates.length > 0 && currentIndex >= templates.length) {
       setCurrentIndex(0);
     }
   }, [templates, currentIndex]);
+
+  const renderTemplatePreview = (config: TemplateConfig) => {
+    const TemplateComponent = TEMPLATE_REGISTRY[config.id];
+    
+    if (!TemplateComponent) {
+      return (
+        <div className="w-full h-full bg-gray-100 flex items-center justify-center rounded-lg">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-gray-200 rounded-lg mb-2 mx-auto"></div>
+            <span className="text-gray-500 text-sm">{config.name}</span>
+          </div>
+        </div>
+      );
+    }
+
+    // Sample data for preview
+    const sampleData = {
+      personalInfo: {
+        firstName: 'Alex',
+        lastName: 'Johnson',
+        title: 'Product Manager',
+        email: 'alex.johnson@email.com',
+        phone: '(555) 987-6543',
+        location: 'New York, NY',
+        website: 'alexjohnson.com'
+      },
+      summary: 'Results-driven product manager with 7+ years of experience leading cross-functional teams and delivering innovative solutions.',
+      experience: [
+        {
+          id: '1',
+          title: 'Senior Product Manager',
+          company: 'Innovation Labs',
+          startDate: '2021',
+          endDate: 'Present',
+          current: true,
+          location: 'New York, NY',
+          description: 'Lead product strategy and development for B2B SaaS platform',
+          bullets: [
+            'Increased user engagement by 45% through data-driven feature development',
+            'Managed product roadmap for $10M+ revenue product line'
+          ],
+          dates: '2021 - Present'
+        }
+      ],
+      skills: {
+        technical: ['Product Strategy', 'Data Analysis', 'Agile/Scrum', 'SQL'],
+        soft: ['Leadership', 'Strategic Thinking', 'Communication', 'Problem Solving']
+      },
+      education: [
+        {
+          id: '1',
+          degree: 'MBA, Business Administration',
+          school: 'Business School',
+          startDate: '2016',
+          endDate: '2018'
+        }
+      ],
+      projects: [
+        {
+          id: '1',
+          name: 'Customer Analytics Platform',
+          description: 'Led development of analytics platform serving 50k+ users',
+          technologies: ['Product Strategy', 'User Research', 'Analytics'],
+          url: 'https://company.com/analytics'
+        }
+      ]
+    };
+
+    return (
+      <div className="w-full h-full scale-50 origin-top-left transform overflow-hidden">
+        <div className="w-[210mm] h-[297mm] bg-white shadow-sm">
+          <TemplateComponent data={sampleData} accentColor={config.accentColor} />
+        </div>
+      </div>
+    );
+  };
 
   if (!templates || templates.length === 0) {
     return (
@@ -81,6 +159,8 @@ export default function TemplateCarousel({
     );
   }
 
+  const isSelected = selectedTemplate === currentTemplate.id;
+
   return (
     <div className={`relative w-full ${className}`}>
       {/* Main carousel container */}
@@ -88,6 +168,25 @@ export default function TemplateCarousel({
         <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[500px]">
           {/* Template Preview */}
           <div className="relative bg-gray-50 flex items-center justify-center p-8">
+            {/* Selection indicator */}
+            {isSelected && (
+              <div className="absolute top-4 left-4 z-10">
+                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                  <Check className="w-5 h-5 text-white" />
+                </div>
+              </div>
+            )}
+
+            {/* Recommended badge */}
+            {currentTemplate.recommended && (
+              <div className="absolute top-4 right-4 z-10">
+                <span className="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
+                  <Star className="w-3 h-3" />
+                  Recommended
+                </span>
+              </div>
+            )}
+
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentIndex}
@@ -97,28 +196,41 @@ export default function TemplateCarousel({
                 transition={{ duration: 0.5 }}
                 className="relative w-full max-w-sm"
               >
-                <img
-                  src={currentTemplate.preview}
-                  alt={`${currentTemplate.name} Preview`}
-                  className="w-full h-auto rounded-lg shadow-md"
-                />
+                <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                  {renderTemplatePreview(currentTemplate)}
+                </div>
                 
                 {/* Overlay with action buttons */}
-                <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-50 
-                  transition-all duration-300 rounded-lg flex 
-                  items-center justify-center opacity-0 hover:opacity-100"
-                >
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="secondary">
-                      <Eye className="w-4 h-4 mr-2" />
-                      Preview
-                    </Button>
-                    <Button size="sm">
-                      <Download className="w-4 h-4 mr-2" />
-                      Use Template
-                    </Button>
+                {showActions && (
+                  <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-50 
+                    transition-all duration-300 rounded-lg flex 
+                    items-center justify-center opacity-0 hover:opacity-100"
+                  >
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="secondary">
+                        <Eye className="w-4 h-4 mr-2" />
+                        Preview
+                      </Button>
+                      <Button 
+                        size="sm"
+                        onClick={() => handleTemplateSelect(currentTemplate.id)}
+                        className={isSelected ? 'bg-green-600 hover:bg-green-700' : ''}
+                      >
+                        {isSelected ? (
+                          <>
+                            <Check className="w-4 h-4 mr-2" />
+                            Selected
+                          </>
+                        ) : (
+                          <>
+                            <Download className="w-4 h-4 mr-2" />
+                            Use Template
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                )}
               </motion.div>
             </AnimatePresence>
           </div>
@@ -134,9 +246,23 @@ export default function TemplateCarousel({
                 transition={{ duration: 0.5 }}
               >
                 <div className="mb-4">
-                  <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full mb-3">
-                    {currentTemplate.category}
-                  </span>
+                  <div className="flex items-center gap-3 mb-3">
+                    <span 
+                      className="inline-block px-3 py-1 text-sm font-medium rounded-full"
+                      style={{ 
+                        backgroundColor: currentTemplate.accentColor + '20', 
+                        color: currentTemplate.accentColor 
+                      }}
+                    >
+                      {currentTemplate.category}
+                    </span>
+                    {currentTemplate.recommended && (
+                      <span className="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
+                        <Star className="w-3 h-3" />
+                        Recommended
+                      </span>
+                    )}
+                  </div>
                   <h3 className="text-3xl font-bold text-gray-900 mb-3">
                     {currentTemplate.name}
                   </h3>
@@ -145,30 +271,59 @@ export default function TemplateCarousel({
                   </p>
                 </div>
 
-                {/* Features */}
-                <div className="mb-6">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-2">Features:</h4>
+                {/* Suitable For */}
+                <div className="mb-4">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-2">Perfect for:</h4>
                   <div className="flex flex-wrap gap-2">
-                    {currentTemplate.features?.map((feature, index) => (
+                    {currentTemplate.suitableFor.map((role, index) => (
                       <span
                         key={index}
-                        className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-md"
+                        className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-md font-medium"
                       >
-                        {feature}
+                        {role}
                       </span>
                     ))}
                   </div>
                 </div>
 
-                <div className="flex gap-3">
-                  <Button className="flex-1">
-                    Use This Template
-                  </Button>
-                  <Button variant="outline">
-                    <Eye className="w-4 h-4 mr-2" />
-                    Preview
-                  </Button>
+                {/* Features */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-2">Features:</h4>
+                  <div className="space-y-2">
+                    {currentTemplate.features.map((feature, index) => (
+                      <div key={index} className="flex items-center text-sm text-gray-600">
+                        <Check className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
+                        {feature}
+                      </div>
+                    ))}
+                  </div>
                 </div>
+
+                {showActions && (
+                  <div className="flex gap-3">
+                    <Button 
+                      className="flex-1"
+                      onClick={() => handleTemplateSelect(currentTemplate.id)}
+                      variant={isSelected ? 'default' : 'secondary'}
+                    >
+                      {isSelected ? (
+                        <>
+                          <Check className="w-4 h-4 mr-2" />
+                          Selected
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4 mr-2" />
+                          Use Template
+                        </>
+                      )}
+                    </Button>
+                    <Button variant="outline">
+                      <Eye className="w-4 h-4 mr-2" />
+                      Preview
+                    </Button>
+                  </div>
+                )}
               </motion.div>
             </AnimatePresence>
           </div>
