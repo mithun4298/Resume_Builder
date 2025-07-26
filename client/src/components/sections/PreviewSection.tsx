@@ -1,4 +1,8 @@
 import React, { useState } from 'react';
+import { ModernTemplatePreview } from '../preview-templates/ModernTemplatePreview';
+import { ClassicTemplatePreview } from '../preview-templates/ClassicTemplatePreview';
+import { CreativeTemplatePreview } from '../preview-templates/CreativeTemplatePreview';
+import { MinimalTemplatePreview } from '../preview-templates/MinimalTemplatePreview';
 import { useResumeData } from '../../hooks/useResumeData';
 import { downloadResumePDF } from '../ResumePDF';
 import { cn } from '@/lib/utils';
@@ -10,9 +14,10 @@ interface PreviewSectionProps {
 export const PreviewSection: React.FC<PreviewSectionProps> = ({
   onPrevious
 }) => {
-  const { resumeData } = useResumeData();
+  const { resumeData, selectTemplate } = useResumeData();
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState('modern');
+  // Use global selectedTemplate
+  const selectedTemplate = resumeData.selectedTemplate || 'modern';
 
   const templates = [
     { id: 'modern', name: 'Modern', preview: '📄' },
@@ -67,7 +72,7 @@ const handleDownloadPDF = async () => {
       resumeData.projects &&
       resumeData.projects.length > 0 &&
       resumeData.projects.every(proj =>
-        proj.title && proj.title.trim() &&
+        proj.name && proj.name.trim() &&
         proj.description && proj.description.trim()
       )
     ) completed++;
@@ -77,62 +82,7 @@ const handleDownloadPDF = async () => {
 
   // Add this function to get preview styles:
 
-const getPreviewStyles = (template: string) => {
-  const baseClasses = "bg-gray-50 border border-gray-200 rounded-lg p-6 space-y-4 max-h-96 overflow-y-auto";
-  
-  const templateClasses = {
-    modern: `${baseClasses} border-blue-200`,
-    classic: `${baseClasses} border-gray-800`,
-    creative: `${baseClasses} border-purple-200 bg-purple-50`,
-    minimal: `${baseClasses} border-gray-100`,
-  };
-  
-  return templateClasses[selectedTemplate] || templateClasses.modern;
-};
-
-const getHeaderStyles = (template: string) => {
-  const templateStyles = {
-    modern: "text-center bg-blue-600 text-white p-4 rounded-t-lg -m-6 mb-4",
-    classic: "text-center border-b-4 border-black pb-4",
-    creative: "text-center bg-purple-600 text-white p-4 rounded-t-lg -m-6 mb-4",
-    minimal: "text-left border-b border-gray-300 pb-4",
-  };
-  
-  return templateStyles[template] || templateStyles.modern;
-};
-
-const getSectionTitleStyles = (template: string) => {
-  const templateStyles = {
-    modern: "text-lg font-semibold text-blue-600 mb-2 border-b-2 border-blue-500 pb-1",
-    classic: "text-lg font-semibold text-black mb-2 border-b border-black pb-1 uppercase tracking-wide",
-    creative: "text-lg font-semibold text-purple-600 mb-2 bg-purple-100 px-2 py-1 rounded",
-    minimal: "text-sm font-semibold text-gray-700 mb-2 border-b border-gray-300 pb-1",
-  };
-  
-  return templateStyles[template] || templateStyles.modern;
-};
-
-const getSkillTagStyles = (template: string) => {
-  const templateStyles = {
-    modern: "px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded",
-    classic: "px-2 py-1 bg-gray-200 text-gray-800 text-xs font-medium rounded",
-    creative: "px-2 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded",
-    minimal: "px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded",
-  };
-  
-  return templateStyles[template] || templateStyles.modern;
-};
-
-const getExperienceBorderStyles = (template: string) => {
-  const templateStyles = {
-    modern: "border-l-2 border-blue-200 pl-4",
-    classic: "border-l-2 border-black pl-4",
-    creative: "border-l-4 border-purple-400 pl-4",
-    minimal: "border-l border-gray-300 pl-4",
-  };
-  
-  return templateStyles[template] || templateStyles.modern;
-};
+// ...existing code...
 
   return (
     <div className="preview-section space-y-6 pb-24">
@@ -201,11 +151,12 @@ const getExperienceBorderStyles = (template: string) => {
           </div>
           <div className={cn(
             "flex items-center space-x-2",
-            resumeData.projects && resumeData.projects.length > 0 && resumeData.projects.every(proj => proj.title && proj.title.trim() && proj.description && proj.description.trim()) ? "text-green-600" : "text-gray-500"
+            resumeData.projects && resumeData.projects.length > 0 && resumeData.projects.every(proj => proj.name && proj.name.trim() && proj.description && proj.description.trim()) ? "text-green-600" : "text-gray-500"
           )}>
-            <span>{resumeData.projects && resumeData.projects.length > 0 && resumeData.projects.every(proj => proj.title && proj.title.trim() && proj.description && proj.description.trim()) ? "✅" : "⭕"}</span>
+            <span>{resumeData.projects && resumeData.projects.length > 0 && resumeData.projects.every(proj => proj.name && proj.name.trim() && proj.description && proj.description.trim()) ? "✅" : "⭕"}</span>
             <span>Projects</span>
           </div>
+        </div>
       </div>
 
       {/* Template Selection */}
@@ -215,7 +166,7 @@ const getExperienceBorderStyles = (template: string) => {
           {templates.map((template) => (
             <button
               key={template.id}
-              onClick={() => setSelectedTemplate(template.id)}
+              onClick={() => selectTemplate(template.id)}
               className={cn(
                 "p-4 border-2 rounded-xl text-center transition-all duration-200",
                 selectedTemplate === template.id
@@ -255,141 +206,11 @@ const getExperienceBorderStyles = (template: string) => {
       </div>
 
       {/* Resume Preview */}
-      <div className={getPreviewStyles(selectedTemplate)}>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Resume Preview</h3>
-        
-        {/* Mock Resume Preview */}
-          <div className="space-y-4">
-            {/* Header */}
-            <div className={getHeaderStyles(selectedTemplate)}>
-              <h1 className={cn(
-                "text-2xl font-bold",
-                selectedTemplate === 'modern' || selectedTemplate === 'creative' ? "text-white" : "text-gray-900"
-              )}>
-                {resumeData.personalInfo.firstName} {resumeData.personalInfo.lastName}
-              </h1>
-              <div className={cn(
-                "flex flex-wrap justify-center gap-4 mt-2 text-sm",
-                selectedTemplate === 'modern' || selectedTemplate === 'creative' ? "text-white" : "text-gray-600"
-              )}>
-                {resumeData.personalInfo.email && <span>{resumeData.personalInfo.email}</span>}
-                {resumeData.personalInfo.phone && <span>{resumeData.personalInfo.phone}</span>}
-                {resumeData.personalInfo.location && <span>{resumeData.personalInfo.location}</span>}
-              </div>
-            </div>
-
-            {/* Summary */}
-            {resumeData.summary && (
-              <div>
-                <h2 className={getSectionTitleStyles(selectedTemplate)}>Professional Summary</h2>
-                <p className="text-gray-700 text-sm leading-relaxed">{resumeData.summary}</p>
-              </div>
-            )}
-
-            {/* Experience */}
-            {resumeData.experiences.length > 0 && (
-              <div>
-                <h2 className={getSectionTitleStyles(selectedTemplate)}>Work Experience</h2>
-                <div className="space-y-3">
-                  {resumeData.experiences.slice(0, 2).map((exp) => (
-                    <div key={exp.id} className={getExperienceBorderStyles(selectedTemplate)}>
-                      <h3 className="font-medium text-gray-900">{exp.position}</h3>
-                      <p className="text-sm text-gray-600">{exp.company} • {exp.startDate} - {exp.endDate || 'Present'}</p>
-                      {exp.description && (
-                        <p className="text-sm text-gray-700 mt-1">{exp.description.substring(0, 100)}...</p>
-                      )}
-                    </div>
-                  ))}
-                  {resumeData.experiences.length > 2 && (
-                    <p className="text-sm text-gray-500 italic">+ {resumeData.experiences.length - 2} more positions</p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Education */}
-            {resumeData.education.length > 0 && (
-              <div>
-                <h2 className={getSectionTitleStyles(selectedTemplate)}>Education</h2>
-                <div className="space-y-2">
-                  {resumeData.education.slice(0, 2).map((edu) => (
-                    <div key={edu.id}>
-                      <h3 className="font-medium text-gray-900">{edu.degree}</h3>
-                      <p className="text-sm text-gray-600">{edu.institution} • {edu.endDate}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Skills */}
-            {resumeData.skills.length > 0 && (
-              <div>
-                <h2 className={getSectionTitleStyles(selectedTemplate)}>Skills</h2>
-                <div className="flex flex-wrap gap-2">
-                  {resumeData.skills.slice(0, 8).map((skill) => (
-                    <span
-                      key={skill.id}
-                      className={getSkillTagStyles(selectedTemplate)}
-                    >
-                      {skill.name}
-                    </span>
-                  ))}
-                  {resumeData.skills.length > 8 && (
-                    <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded">
-                      +{resumeData.skills.length - 8} more
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Certifications */}
-            {resumeData.certifications.length > 0 && (
-              <div>
-                <h2 className={getSectionTitleStyles(selectedTemplate)}>Certifications</h2>
-                <div className="space-y-2">
-                  {resumeData.certifications.slice(0, 3).map((cert) => (
-                    <div key={cert.id}>
-                      <h3 className="font-medium text-gray-900">{cert.name}</h3>
-                      <p className="text-sm text-gray-600">{cert.issuer} • {cert.date}</p>
-                    </div>
-                  ))}
-                  {resumeData.certifications.length > 3 && (
-                    <p className="text-sm text-gray-500 italic">
-                      +{resumeData.certifications.length - 3} more certifications
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Projects */}
-            {resumeData.projects && resumeData.projects.length > 0 && (
-              <div>
-                <h2 className={getSectionTitleStyles(selectedTemplate)}>Projects</h2>
-                <div className="space-y-2">
-                  {resumeData.projects.slice(0, 3).map((proj) => (
-                    <div key={proj.id}>
-                      <h3 className="font-medium text-gray-900">{proj.title}</h3>
-                      <p className="text-sm text-gray-600">{proj.description}</p>
-                      {proj.url && (
-                        <a href={proj.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-xs">
-                          {proj.url}
-                        </a>
-                      )}
-                    </div>
-                  ))}
-                  {resumeData.projects.length > 3 && (
-                    <p className="text-sm text-gray-500 italic">
-                      +{resumeData.projects.length - 3} more projects
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+      <div>
+        {selectedTemplate === 'modern' && <ModernTemplatePreview resumeData={resumeData} />}
+        {selectedTemplate === 'classic' && <ClassicTemplatePreview resumeData={resumeData} />}
+        {selectedTemplate === 'creative' && <CreativeTemplatePreview resumeData={resumeData} />}
+        {selectedTemplate === 'minimal' && <MinimalTemplatePreview resumeData={resumeData} />}
       </div>
 
       {/* Download Section */}
@@ -435,4 +256,4 @@ const getExperienceBorderStyles = (template: string) => {
       </div>
     </div>
   );
-};
+}

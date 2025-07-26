@@ -1,11 +1,10 @@
 import React, { useRef, useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "../ui/carousel";
 import { dummyITResumeData } from "../dummyITResumeData";
+import { useResumeData } from "../../hooks/useResumeData";
 
-type TemplateCarouselProps = {
-  onSelectTemplate?: (templateId: string) => void;
-};
+
 
 // Mock templates data - you should replace this with your actual templates
 const templates = [
@@ -234,16 +233,17 @@ const PreviewWrapper = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-const TemplateCarousel = ({ onSelectTemplate = () => {} }: TemplateCarouselProps) => {
+const TemplateCarousel = () => {
   const [, navigate] = useLocation();
   const [api, setApi] = useState<any>();
   const [isAutoScrolling, setIsAutoScrolling] = useState(true);
-  const [currentSlide, setCurrentSlide] = useState(0);
+  // Removed unused currentSlide state
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const { selectTemplate } = useResumeData();
 
   const handleSelect = (key: string) => {
+    selectTemplate(key);
     navigate(`/resume-builder?template=${key}`);
-    onSelectTemplate(key);
   };
 
   // Auto-scroll functionality (right to left)
@@ -266,21 +266,7 @@ const TemplateCarousel = ({ onSelectTemplate = () => {} }: TemplateCarouselProps
     };
   }, [api, isAutoScrolling]);
 
-  // Track current slide
-  useEffect(() => {
-    if (!api) return;
-
-    const onSelect = () => {
-      setCurrentSlide(api.selectedScrollSnap());
-    };
-
-    api.on("select", onSelect);
-    onSelect();
-
-    return () => {
-      api.off("select", onSelect);
-    };
-  }, [api]);
+  // Removed unused effect for currentSlide
 
   // Pause auto-scroll on hover
   const handleMouseEnter = () => {
@@ -322,7 +308,7 @@ const TemplateCarousel = ({ onSelectTemplate = () => {} }: TemplateCarouselProps
         `
       }} />
       
-      <section className="w-full max-w-7xl mx-auto py-16 px-4 bg-transparent">
+      <section className="w-full max-w-7xl mx-auto py-16 px-4 bg-transparent" id="resume-builder">
         {/* Carousel Container */}
         <div 
           className="relative max-w-6xl mx-auto"
@@ -340,7 +326,7 @@ const TemplateCarousel = ({ onSelectTemplate = () => {} }: TemplateCarouselProps
             }}
           >
             <CarouselContent className="-ml-3">
-              {templates.map((template, index) => (
+              {templates.map((template) => (
                 <CarouselItem 
                   key={template.id} 
                   className="pl-3 basis-full sm:basis-1/2 lg:basis-1/3 xl:basis-1/4"
@@ -411,8 +397,8 @@ const TemplateCarousel = ({ onSelectTemplate = () => {} }: TemplateCarouselProps
           { label: "Industries", value: "25+" },
           { label: "ATS Tested", value: "100%" },
           { label: "Customizable", value: "Fully" },
-        ].map((stat, index) => (
-          <div key={index} className="text-center">
+        ].map((stat, idx) => (
+          <div key={idx} className="text-center">
             <div className="text-3xl font-bold text-primary">{stat.value}</div>
             <div className="text-muted-foreground">{stat.label}</div>
           </div>
